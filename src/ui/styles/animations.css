@@ -1,0 +1,146 @@
+/**
+ * 动画效果
+ */
+
+/* 淡入动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 滑入动画 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* 闪烁动画 */
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 旋转动画 */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 应用动画的类 */
+.fade-in {
+    animation: fadeIn var(--transition-normal) ease-out;
+}
+
+.slide-in {
+    animation: slideIn var(--transition-normal) ease-out;
+}
+
+.pulse {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.blink {
+    animation: blink 1s ease-in-out infinite;
+}
+
+.rotate {
+    animation: rotate 2s linear infinite;
+}
+
+/* 结果列表项动画 */
+.result-item {
+    animation: fadeIn 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+.result-item:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.result-item:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.result-item:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.result-item:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.result-item:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+/* 悬停效果 */
+.hover-lift {
+    transition: transform var(--transition-fast);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: rotate 0.8s linear infinite;
+}
+
+/* 成功/错误提示动画 */
+.success-flash {
+    animation: pulse 0.5s ease-out;
+    background-color: var(--success);
+    color: white;
+}
+
+.error-flash {
+    animation: pulse 0.5s ease-out;
+    background-color: var(--error);
+    color: white;
+}

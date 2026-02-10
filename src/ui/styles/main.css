@@ -1,0 +1,327 @@
+/**
+ * CSS 变量定义 - 复古电子游戏机风格
+ */
+
+:root {
+    /* 复古主题 - 绿色显示器 */
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-tertiary: #1a1a1a;
+    --text-primary: #00ff00;
+    --text-secondary: #00aa00;
+    --accent-primary: #00ff00;
+    --accent-secondary: #00dd00;
+    --border-color: #00ff00;
+    --shadow: rgba(0, 255, 0, 0.3);
+    --shadow-hover: rgba(0, 255, 0, 0.5);
+
+    /* 成功/错误颜色 */
+    --success: #00ff00;
+    --error: #ff0000;
+    --warning: #ffff00;
+
+    /* 间距 */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 0.75rem;
+    --spacing-lg: 1rem;
+    --spacing-xl: 1.5rem;
+
+    /* 圆角 */
+    --radius-sm: 0px;
+    --radius-md: 2px;
+    --radius-lg: 4px;
+
+    /* 过渡 */
+    --transition-fast: 100ms ease;
+    --transition-normal: 200ms ease;
+    --transition-slow: 300ms ease;
+}
+
+/* 深色主题 - 亮黄色显示器 */
+[data-theme="dark"] {
+    --bg-primary: #1a1a0a;
+    --bg-secondary: #252520;
+    --bg-tertiary: #303028;
+    --text-primary: #ffff33;
+    --text-secondary: #e6e633;
+    --accent-primary: #ffff00;
+    --accent-secondary: #ffff66;
+    --border-color: #ffff33;
+    --shadow: rgba(255, 255, 51, 0.4);
+    --shadow-hover: rgba(255, 255, 51, 0.6);
+    --success: #ffff00;
+    --warning: #ffaa00;
+}
+
+/* 火柴棒字体 */
+@font-face {
+    font-family: 'matchstick';
+    src: url('../../../assets/fonts/digital-7.regular.ttf');
+}
+
+/* 全局重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', 'Courier', monospace;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: unset;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.4;
+    transition: background-color var(--transition-normal),
+        color var(--transition-normal);
+    text-shadow: 0 0 2px var(--text-primary);
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* 像素效果 - 扫描线 */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* 容器 */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+}
+
+/* 卡片 */
+.card {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-md);
+    box-shadow: 0 0 10px var(--shadow), inset 0 0 20px rgba(0, 0, 0, 0.5);
+    transition: all var(--transition-normal);
+    margin-bottom: var(--spacing-md);
+}
+
+.card:hover {
+    box-shadow: 0 0 20px var(--shadow-hover), inset 0 0 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+/* 按钮 */
+.btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-family: 'matchstick', 'Courier New', monospace;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    outline: none;
+}
+
+/* 确保所有按钮文字都使用digital7字体，除了emoji */
+.btn:not(:empty) {
+    font-family: 'matchstick', 'Courier New', monospace;
+}
+
+.btn-primary {
+    background-color: var(--accent-primary);
+    color: #000;
+    font-weight: bold;
+    box-shadow: 0 0 8px var(--shadow);
+    text-shadow: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 0 16px var(--shadow-hover), 0 4px 12px var(--shadow-hover);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 0 4px var(--shadow);
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    box-shadow: 0 0 6px var(--shadow);
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-secondary);
+    box-shadow: 0 0 12px var(--shadow-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* 输入框 */
+input[type="text"] {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 1.1rem;
+    font-family: 'matchstick', monospace;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 12px var(--shadow-hover), inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+input[type="text"]::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+/* 火柴棒显示 */
+.matchsticks {
+    font-family: 'matchstick', monospace;
+    font-size: 1.5rem;
+    letter-spacing: 0.1em;
+    height: 1em;
+}
+
+/* 列表 */
+ul {
+    list-style: none;
+}
+
+li {
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin: var(--spacing-xs) 0;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+}
+
+li:hover {
+    background-color: var(--bg-tertiary);
+    cursor: pointer;
+}
+
+/* 标题 */
+h1,
+h2,
+h3 {
+    font-family: 'matchstick', 'Courier New', monospace;
+    font-weight: normal;
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+}
+
+h1 {
+    font-size: 1.5rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+}
+
+h3 {
+    font-size: 0.9rem;
+}
+
+/* 段落 */
+p {
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'matchstick', 'Courier New', monospace;
+    margin-top: var(--spacing-md);
+}
+
+/* 基础单元格样式 */
+th,
+td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    font-family: 'matchstick', 'Courier New', monospace;
+}
+
+/* 默认td样式 */
+td {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+/* 表头样式 - thead中的th使用较大字体 */
+thead th {
+    font-weight: 600;
+    font-family: 'matchstick', 'Courier New', monospace;
+    font-size: 1.2rem !important;
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+}
+
+/* tbody中的th（首列）使用普通大小字体 */
+tbody th {
+    font-weight: 600;
+    font-family: 'matchstick', 'Courier New', monospace;
+    font-size: 1.2rem !important;
+    color: var(--text-primary);
+}
+
+/* 规则表中的火柴棒字体调整 */
+th.matchsticks,
+td.matchsticks {
+    font-size: 1.2rem;
+}
+
+tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .matchsticks {
+        font-size: 1.5rem;
+    }
+}

@@ -1,0 +1,323 @@
+/**
+ * SVG 火柴棒组件样式
+ */
+
+/* 按钮 */
+.btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-transform: uppercase;
+    box-shadow: 0 0 5px var(--shadow);
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    box-shadow: 0 0 10px var(--shadow-hover);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 0 5px var(--shadow);
+}
+
+.btn-primary {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* 输入框 */
+input[type="text"] {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: 'matchstick', 'Courier New', monospace;
+    font-size: 1.1rem;
+    transition: all var(--transition-fast);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 10px var(--shadow-hover), inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 表格 */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+table th,
+table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+table th {
+    background-color: var(--bg-tertiary);
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+table tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* 火柴棒数字容器 */
+.matchstick-digit {
+    display: inline-block;
+    margin: 0 2px;
+}
+
+/* 火柴棒线条 */
+.matchstick-digit .match {
+    transition: all var(--transition-normal);
+}
+
+/* 火柴棒悬停效果 */
+.matchstick-digit:hover .match {
+    stroke: var(--accent-primary);
+    filter: drop-shadow(0 0 4px var(--accent-primary));
+}
+
+/* 等式容器 (SVG模式) */
+.matchstick-equation {
+    padding: 0;
+    /* 移除内边距，减小背景框 */
+    background: transparent;
+    /* 移除背景色，使其融入结果项 */
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    /* 减小间距 */
+    white-space: nowrap;
+    /* 强制不换行 */
+    flex-wrap: nowrap;
+    /* 禁止Flex换行 */
+    overflow-x: auto;
+    /* 如果还是太长，允许水平滚动 */
+    max-width: 100%;
+    /* 防止撑破容器 */
+    scrollbar-width: none;
+    /* 隐藏滚动条(Firefox) */
+}
+
+/* 隐藏Webkit滚动条 */
+.matchstick-equation::-webkit-scrollbar {
+    display: none;
+}
+
+/* SVG模式样式调整 */
+svg.matchstick-digit {
+    height: 20px;
+    /* 进一步减小高度以匹配标准模式 */
+    width: auto;
+    /* 宽度自适应 */
+}
+
+/* 结果容器 */
+.result-container {
+    margin-top: var(--spacing-sm);
+}
+
+.result-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    /* 增加最小宽度，防止换行 */
+    gap: var(--spacing-sm);
+    padding: 0;
+}
+
+/* 结果项 */
+.result-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    /* 左对齐 */
+    gap: var(--spacing-md);
+    border: 1px solid transparent;
+    /* 减小边框占用 */
+    font-size: 1.2rem;
+    /* 减小字体，与输入框接近 */
+    overflow: hidden;
+    /* 防止溢出 */
+}
+
+/* 恢复悬停浮动和手型光标 */
+.result-item:hover {
+    background: var(--bg-primary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-hover);
+    cursor: pointer;
+}
+
+/* 成功徽章调整 */
+/* 成功徽章调整 */
+.success-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-left: auto;
+    /* 推到右侧 */
+    flex-shrink: 0;
+}
+
+/* 分组结果 */
+.grouped-results {
+    animation: fadeIn var(--transition-normal) ease-out;
+}
+
+/* 模式选择器 */
+.mode-selector {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.mode-selector .btn {
+    flex: 1;
+    min-width: 200px;
+    text-align: left;
+    padding: var(--spacing-lg);
+    transition: all var(--transition-fast);
+}
+
+.mode-selector .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* SVG显示模式特定样式 - 移除背景渐变，使其更简洁 */
+.svg-mode .matchstick-equation {
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+/* 火柴棒动画 */
+@keyframes matchMove {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.match-animate {
+    animation: matchMove 0.6s ease-in-out;
+}
+
+/* 火柴棒发光效果 */
+.match-glow {
+    filter: drop-shadow(0 0 6px var(--accent-primary));
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .result-list {
+        grid-template-columns: 1fr;
+    }
+
+    .mode-selector {
+        flex-direction: column;
+    }
+
+    .mode-selector .btn {
+        min-width: auto;
+    }
+
+    .matchstick-equation {
+        justify-content: flex-start;
+        /* 移动端左对齐，配合滚动 */
+    }
+}
+
+/* 深色主题下的火柴棒颜色 */
+[data-theme="dark"] .matchstick-digit .match {
+    stroke: #ff8c69;
+}
+
+[data-theme="dark"] .matchstick-digit:hover .match {
+    stroke: var(--accent-secondary);
+    filter: drop-shadow(0 0 6px var(--accent-secondary));
+}
+
+/* 加载状态 */
+.result-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+}
+
+.result-loading::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: rotate 0.8s linear infinite;
+    margin-right: var(--spacing-md);
+}
+
+/* 空状态 */
+.result-empty {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.result-empty::before {
+    content: '🔍';
+    display: block;
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    opacity: 0.5;
+}

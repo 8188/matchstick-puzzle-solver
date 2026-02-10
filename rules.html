@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>转换规则 - MATCHSTICK SOLVER</title>
+
+    <!-- 样式 -->
+    <link rel="stylesheet" href="src/ui/styles/main.css">
+    <link rel="stylesheet" href="src/ui/styles/animations.css">
+    <link rel="stylesheet" href="src/ui/styles/components.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 2px solid var(--border-color);">
+            <h1 class="rules-main-title" style="font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--text-primary);"></h1>
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <button onclick="window.location.href='index.html'" class="btn btn-secondary back-button" style="font-size: 0.75rem;"></button>
+                <button id="lang-toggle" class="btn btn-secondary" title="切换语言">🌐</button>
+                <button id="theme-toggle" class="btn btn-secondary" title="切换主题">🌙</button>
+            </div>
+        </header>
+
+        <!-- 规则表 -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <h3 class="rules-page-title" style="font-size: 0.9rem; margin: 0;"></h3>
+                <div id="mode-selector" style="display: flex; gap: var(--spacing-sm);"></div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer style="margin-top: var(--spacing-md); padding-top: var(--spacing-sm); border-top: 1px solid var(--border-color); text-align: center; font-size: 0.7rem; opacity: 0.5;">
+            <p>RETRO EDITION | <a href="https://github.com/8188/matchstick-puzzle-solver" target="_blank" style="color: var(--accent-primary); text-decoration: none;">GITHUB</a></p>
+        </footer>
+    </div>
+
+    <!-- 脚本 -->
+    <script type="module">
+        import { App } from './src/ui/app.js';
+
+        // 先同步主题
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // 创建应用实例（规则页会自动渲染规则表和模式选择器）
+        window.app = new App();
+
+        // 设置主题按钮图标
+        const themeToggle = document.querySelector('#theme-toggle');
+        if (themeToggle) {
+            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        // 规则页文本同步
+        if (window.app && window.app.updateRulesPageText) {
+            window.app.updateRulesPageText();
+        }
+    </script>
+</body>
+
+</html>

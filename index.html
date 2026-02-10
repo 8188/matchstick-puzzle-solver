@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火柴棒等式解题工具箱</title>
+
+    <!-- 样式 -->
+    <link rel="stylesheet" href="src/ui/styles/main.css">
+    <link rel="stylesheet" href="src/ui/styles/animations.css">
+    <link rel="stylesheet" href="src/ui/styles/components.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 2px solid var(--border-color);">
+            <h1 style="font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--text-primary);">■ MATCHSTICK SOLVER</h1>
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <button id="lang-toggle" class="btn btn-secondary" title="切换语言">🌐</button>
+                <button id="theme-toggle" class="btn btn-secondary" title="切换主题">🌙</button>
+            </div>
+        </header>
+
+        <!-- 模式选择器 -->
+        <div class="card" style="margin-bottom: var(--spacing-md);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                <h3 class="mode-title" style="font-size: 0.9rem; margin: 0;">▸ MODE</h3>
+                <button id="show-rules" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;">⚙ RULES</button>
+            </div>
+            <div id="mode-selector" style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);"></div>
+            <div id="char-preview" style="display: flex; gap: 4px; flex-wrap: wrap; background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 4px; min-height: 32px; align-items: center;"></div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="card" style="margin-bottom: var(--spacing-md);">
+            <h3 class="input-title" style="font-size: 0.9rem; margin-bottom: var(--spacing-sm);">▸ INPUT</h3>
+            <div style="display: flex; gap: var(--spacing-sm); align-items: stretch;">
+                <form onsubmit="return false;" style="flex: 1;">
+                    <input type="text" id="equation" placeholder="8+3-4=0" autocomplete="off" style="height: 42px;">
+                </form>
+                <div id="equation-preview" style="flex: 1; padding: var(--spacing-sm); background: var(--bg-tertiary); border: 1px solid var(--border-color); min-height: 42px; display: flex; align-items: center; justify-content: center;"></div>
+            </div>
+        </div>
+
+        <!-- 示例问题 -->
+        <div class="card" style="margin-bottom: var(--spacing-md);">
+            <h3 class="examples-title" style="font-size: 0.9rem; margin-bottom: var(--spacing-sm);">▸ EXAMPLES</h3>
+            <ul id="samples" style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; list-style: none;"></ul>
+        </div>
+
+        <!-- 结果显示 -->
+        <div id="status"></div>
+
+        <!-- 页脚 -->
+        <footer style="margin-top: var(--spacing-md); padding-top: var(--spacing-sm); border-top: 1px solid var(--border-color); text-align: center; font-size: 0.7rem; opacity: 0.5; font-family: 'matchstick', 'Courier New', monospace;">
+            <p>RETRO EDITION | <a href="https://github.com/8188/matchstick-puzzle-solver" target="_blank" style="color: var(--accent-primary); text-decoration: none;">GITHUB</a></p>
+        </footer>
+    </div>
+
+    <!-- 脚本 -->
+    <script type="module" src="src/ui/app.js"></script>
+</body>
+
+</html>
