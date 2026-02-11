@@ -406,11 +406,23 @@ class MatchstickSolver {
     }
 
     solve(equation) {
-        const arr = this.tokenize(equation);
-        const mutations = this.mutate(arr);
+        // 获取所有可能的tokenize方式
+        const tokenizeVariants = this.getAllTokenizeVariants(equation);
+        
+        // 对每种tokenize方式生成变换
+        const allMutations = [];
+        for (const arr of tokenizeVariants) {
+            const mutations = this.mutate(arr);
+            allMutations.push(...mutations);
+        }
 
-        const solutions = mutations.filter(arr => TestEvaluator.evaluate(arr));
-        const others = mutations.filter(arr => !TestEvaluator.evaluate(arr));
+        let solutions = allMutations.filter(arr => TestEvaluator.evaluate(arr));
+        const others = allMutations.filter(arr => !TestEvaluator.evaluate(arr));
+
+        // 如果是移动2根模式，需要排除只移动1根就能达到的解
+        if (this.moveCount === 2) {
+            solutions = this.filterOutSingleMoveSolutions(tokenizeVariants[0], solutions);
+        }
 
         // 去重并规范化
         const normalize = (str) => str.replace(/ /g, '');
@@ -432,8 +444,88 @@ class MatchstickSolver {
         return {
             solutions: finalSolutions,
             others: uniqueOthers,
-            totalMutations: mutations.length
+            totalMutations: allMutations.length
         };
+    }
+
+    getAllTokenizeVariants(equation) {
+        const variants = [];
+        
+        // 默认tokenize（贪婪匹配11）
+        variants.push(this.tokenize(equation));
+        
+        // 检查是否包含连续的1（可能形成多个11）
+        const hasConsecutiveOnes = /1{2,}/.test(equation);
+        if (hasConsecutiveOnes) {
+            const alternativeTokens = this.tokenizeAlternative(equation);
+            if (JSON.stringify(alternativeTokens) !== JSON.stringify(variants[0])) {
+                variants.push(alternativeTokens);
+            }
+        }
+        
+        return variants;
+    }
+
+    tokenizeAlternative(equation) {
+        const tokens = [];
+        let i = 0;
+        
+        while (i < equation.length) {
+            if (equation.substring(i, i + 5) === '(11)H') {
+                tokens.push('(11)H');
+                i += 5;
+                continue;
+            }
+            
+            if (equation[i] === '(' && i + 3 < equation.length && 
+                equation[i + 2] === ')' && equation[i + 3] === 'H') {
+                tokens.push(equation.substring(i, i + 4));
+                i += 4;
+                continue;
+            }
+            
+            // 对于数字1，先看后面是否还有1
+            if (equation[i] === '1' && i + 1 < equation.length && equation[i + 1] === '1') {
+                const nextNext = i + 2 < equation.length ? equation[i + 2] : '';
+                if (nextNext === '1') {
+                    // 3个连续1，先放单个1
+                    tokens.push('1');
+                    i++;
+                } else {
+                    // 2个连续1，组成11
+                    tokens.push('11');
+                    i += 2;
+                }
+            } else {
+                tokens.push(equation[i]);
+                i++;
+            }
+        }
+        
+        return tokens;
+    }
+
+    filterOutSingleMoveSolutions(originalArr, solutions) {
+        // 获取移动1根火柴的所有可能解
+        const wrappedArr = this.wrapWithSpaces(originalArr);
+        const singleCharMutations = this.transforms(wrappedArr).concat(this.moves(wrappedArr));
+        const multiCharMutations = this.multiCharTransforms(originalArr);
+        const singleMoveMutations = [...singleCharMutations, ...multiCharMutations];
+        const singleMoveSolutions = singleMoveMutations.filter(arr => TestEvaluator.evaluate(arr));
+        
+        // 规范化函数（去除空格）
+        const normalize = (arr) => arr.join('').replace(/ /g, '');
+        const singleMoveSolutionSet = new Set(singleMoveSolutions.map(normalize));
+        
+        // 过滤掉在单根移动解集中的解，以及包含双等号、双运算符的无效解
+        return solutions.filter(solution => {
+            const normalizedSolution = normalize(solution);
+            // 检查是否包含双等号或连续运算符
+            if (/==|\+\+|--|\*\*|\/\/|\+\*|\*\+|\+-|-\+|\+\/|\/\+|-\*|\*-|-\/|\/\-|\*\/|\/\*/.test(normalizedSolution)) {
+                return false;
+            }
+            return !singleMoveSolutionSet.has(normalizedSolution);
+        });
     }
 
     tokenize(equation) {
@@ -481,8 +573,9 @@ class MatchstickSolver {
             
             // 4. 转换一根 + 转换一根（如 2→3 转换，同时 (6)H→(9)H 转换）
             results.push(...this.transformTwice(wrappedArr));
-            
-            return results;
+                        // 5. 转换一根 + 移除一根 + 添加一根
+            results.push(...this.transformAndMove(wrappedArr));
+                        return results;
         }
         throw new Error(`Unsupported move count: ${this.moveCount}`);
     }
@@ -657,6 +750,47 @@ class MatchstickSolver {
         
         return results;
     }
+
+    transformAndMove(arr) {
+        const results = [];
+        const { trans, subs, adds } = this.ruleManager.getRules();
+        
+        // 第一步：在位置 i 转换一根火柴
+        arr.forEach((c, i) => {
+            const transSet = trans[c];
+            if (!transSet) return;
+            
+            [...transSet].forEach(replacement1 => {
+                const arr1 = this.replace(arr, i, replacement1);
+                
+                // 第二步：在位置 j 移除一根火柴
+                arr1.forEach((d, j) => {
+                    if (i === j) return;
+                    const subsSet = subs[d];
+                    if (!subsSet) return;
+                    
+                    [...subsSet].forEach(replacement2 => {
+                        const arr2 = this.replace(arr1, j, replacement2);
+                        
+                        // 第三步：在位置 k 添加一根火柴
+                        arr2.forEach((e, k) => {
+                            if (k === i || k === j) return;
+                            const addsSet = adds[e];
+                            if (!addsSet) return;
+                            
+                            [...addsSet].forEach(replacement3 => {
+                                const arr3 = this.replace(arr2, k, replacement3);
+                                results.push(arr3);
+                            });
+                        });
+                    });
+                });
+            });
+        });
+        
+        return results;
+    }
+
 }
 
 // 测试
@@ -695,7 +829,7 @@ standardTests.forEach(([equation, expectedSolutions]) => {
         passed++;
         console.log(`✅ ${equation} - 期望 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
         if (result.solutions.length > 0) {
-            console.log(`   解: ${result.solutions.slice(0, 3).join(', ')}`);
+            console.log(`   解: ${result.solutions.join(', ')}`);
         }
     } else {
         failed++;
@@ -708,7 +842,7 @@ standardTests.forEach(([equation, expectedSolutions]) => {
 
 // 手写模式测试
 console.log('\n═══════════════════════════════════');
-console.log('✍️  手写模式测试（覆盖所有()H字符）');
+console.log('✍️  手写模式测试');
 console.log('═══════════════════════════════════\n');
 
 const handwrittenMode = new HandwrittenMode();
@@ -719,30 +853,20 @@ ruleManager.switchMode('handwritten');
 const solver2 = new MatchstickSolver(ruleManager, 1);
 
 const handwrittenTests = [
-    // 测试每个手写字符至少出现一次（本身不成立，需要移动才有解）
-    // (0)H - 4根火柴，(6)H - 5根火柴，(9)H - 5根火柴
-    ['(0)H+(6)H=(9)H', 1],  // 0+6≠9，测试(0)H、(6)H、(9)H
-    
-    // (1)H - 1根火柴，(4)H - 3根火柴  
-    ['2+(4)H=5', 1],     // 2+4≠5（可变+为(1)H得到2(1)H(4)H=5，即2-4≠5不成立，但可以变为其他）或者其他变换
-    
-    // (7)H - 2根火柴
-    ['(1)H+2=5', 1],        // 1+2≠5（可变(1)H为(7)H）
-    
-    // (11)H - 2根火柴（直接测试在综合例子中）
-    // ['(11)H+3=5', 1],    // 无法找到有效解，(11)H在综合测试中覆盖
-    
+    // 加法测试（覆盖()H）
+    ['(0)H+(6)H=(9)H', 3],
+    ['2+(4)H=5', 1],
+    ['(1)H+2=5', 2],
+    ['(4)H+5=(9)H', 1],
+
     // 乘法测试（覆盖*符号）
-    ['2*3=(9)H', 1],        // 2*3≠9，测试*符号
+    ['2*3=(9)H', 2],
     
     // 除法测试（覆盖/符号）  
-    ['6/3=3', 1],           // 6/3=2可变为6/2=3，测试/符号
+    ['6/3=3', 2],
     
     // 三数运算（覆盖+、-符号）
-    ['(9)H+3-2=5', 1],      // 9+3-2≠5，三数运算
-    
-    // 综合测试
-    ['(4)H+5=(9)H', 1],     // 4+5=9，多种手写字符
+    ['(9)H+3-2=5', 1],
 ];
 
 handwrittenTests.forEach(([equation, expectedSolutions]) => {
@@ -753,7 +877,7 @@ handwrittenTests.forEach(([equation, expectedSolutions]) => {
         passed++;
         console.log(`✅ ${equation} - 期望至少 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
         if (result.solutions.length > 0) {
-            console.log(`   解: ${result.solutions.slice(0, 3).join(', ')}`);
+            console.log(`   解: ${result.solutions.join(', ')}`);
         }
     } else {
         failed++;
@@ -771,16 +895,22 @@ const solver3 = new MatchstickSolver(ruleManager, 2);
 
 const doubleMoveTests = [
     // 测试 transform2 规则
-    ['1+3=5', 1],      // 组合移动可得到有效解
-    ['5+2=8', 1],      // 5<->2 或其他变换
+    ['1+3=5', 3],      // 组合移动可得到有效解
+    ['5+2=8', 2],      // 5<->2 或其他变换
     
     // 测试 add2 规则和组合移动
-    ['3-2=0', 1],      // SPACE->1 等
+    ['3-2=0', 3],      // SPACE->1 等
     ['6-4=3', 1],      // 组合两次单根移动
     ['8-6=1', 1],      // 组合移动
     
     // 复杂测试
-    ['5+5=8', 1],      // 多种可能的变换
+    ['5+5=8', 4],      // 多种可能的变换
+
+    // 多位数测试
+    ['111+1=0', 3],
+    ['64+98=11', 1],
+    ['41+29=78', 3],  // 44+29=73, 47+28=75, 41+38=79 (47+29=76被过滤,因为只需移动1根)
+    ['79-39=17', 4],
 ];
 
 doubleMoveTests.forEach(([equation, expectedSolutions]) => {
@@ -791,12 +921,12 @@ doubleMoveTests.forEach(([equation, expectedSolutions]) => {
         passed++;
         console.log(`✅ ${equation} - 期望至少 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
         if (result.solutions.length > 0) {
-            console.log(`   解: ${result.solutions.slice(0, 3).join(', ')}`);
+            console.log(`   解: ${result.solutions.join(', ')}`);
         }
     } else {
         failed++;
         console.log(`❌ ${equation} - 期望至少 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
-        if (result.solutions.length > 0 && result.solutions.length <= 5) {
+        if (result.solutions.length > 0) {
             console.log(`   解: ${result.solutions.join(', ')}`);
         }
     }
@@ -813,18 +943,18 @@ const solver4 = new MatchstickSolver(ruleManager, 2);
 const handwrittenDoubleMoveTests = [
     // 测试 transform2 规则 (2个2根火柴字符互转)
     ['+/(7)H=3', 1],      // +可变换为*,=,/,(7)H,(11)H
-    ['2+3=8', 1],         // 2可变换为5,(6)H,(9)H
+    ['2+3=8', 2],         // 2可变换为5,(6)H,(9)H
     
     // 测试 add2 规则 (空格添加2根) - 调整为更简单的用例
-    ['(1)H+2=5', 1],      // (1)H添加2根得到(4)H
-    ['(9)H+2=8', 1],      // (9)H可以变换为其他数字
+    ['(1)H+2=5', 2],      // (1)H添加2根得到(4)H
+    ['(9)H+2=8', 2],      // (9)H可以变换为其他数字
     
     // 测试复杂组合
     ['5+(7)H=8', 1],      // 多种可能的2根变换
-    ['2*3=5', 1],         // 数字和运算符变换
+    ['2*3=5', 2],         // 数字和运算符变换
     
     // 测试转换+转换组合（用户案例）
-    ['2*3=(6)H', 1],      // 2→3(转换1根) + (6)H→(9)H(转换1根) = 3*3=(9)H
+    ['2*3=(6)H', 3],      // 2→3(转换1根) + (6)H→(9)H(转换1根) = 3*3=(9)H
 ];
 
 handwrittenDoubleMoveTests.forEach(([equation, expectedSolutions]) => {
@@ -835,12 +965,12 @@ handwrittenDoubleMoveTests.forEach(([equation, expectedSolutions]) => {
         passed++;
         console.log(`✅ ${equation} - 期望至少 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
         if (result.solutions.length > 0) {
-            console.log(`   解: ${result.solutions.slice(0, 3).join(', ')}`);
+            console.log(`   解: ${result.solutions.join(', ')}`);
         }
     } else {
         failed++;
         console.log(`❌ ${equation} - 期望至少 ${expectedSolutions} 解，得到 ${result.solutions.length} 解`);
-        if (result.solutions.length > 0 && result.solutions.length <= 5) {
+        if (result.solutions.length > 0) {
             console.log(`   解: ${result.solutions.join(', ')}`);
         }
     }
@@ -857,7 +987,7 @@ if (failed > 0) {
 } else {
     console.log('\n🎉 所有测试通过！');
     console.log('✅ 标准模式（移动1根）: 正常工作');
-    console.log('✅ 手写模式（移动1根）: 所有()H字符都已覆盖');
+    console.log('✅ 手写模式（移动1根）: 正常工作');
     console.log('✅ 标准模式（移动2根）: 正常工作');
     console.log('✅ 手写模式（移动2根）: 正常工作');
     process.exit(0);
