@@ -18,10 +18,12 @@ export class App {
         this.ruleManager = new RuleManager();
         this.solver = null;
         this.currentMode = 'standard';
+        this.currentMoveCount = 1; // 移动火柴的数量
         this.currentTheme = 'light';
         this.useSVGDisplay = false; // SVG显示开关
         this.i18n = new I18n(); // 国际化支持
         this.debugMode = new URLSearchParams(window.location.search).get('debug') === '1'; // 调试模式
+        this.solveTimer = null;
 
         // UI组件
         this.matchstickDisplay = new MatchstickDisplay();
@@ -110,8 +112,17 @@ export class App {
         const equationInput = document.querySelector("#equation");
         if (equationInput) {
             equationInput.addEventListener('input', (e) => {
-                this.solve(e.target.value);
-                this.updateEquationPreview(e.target.value);
+                // 支持小写h，自动转换为大写H
+                let value = e.target.value;
+                if (value.includes('h')) {
+                    // 保持光标位置
+                    const cursorPos = e.target.selectionStart;
+                    value = value.replace(/h/g, 'H');
+                    e.target.value = value;
+                    e.target.setSelectionRange(cursorPos, cursorPos);
+                }
+                this.updateEquationPreview(value);
+                this.scheduleSolve(value);
             });
         }
 
@@ -121,6 +132,9 @@ export class App {
         // 模式切换器
         this.setupModeSelector();
 
+        // 移动数量选择器
+        this.setupMoveCountSelector();
+
         // 字符预览
         this.renderCharPreview();
 
@@ -129,6 +143,9 @@ export class App {
 
         // 语言切换器
         this.setupLanguageToggle();
+
+        // 音乐切换器
+        this.setupMusicToggle();
 
         // 初始化页面文本
         this.updatePageText();
@@ -143,6 +160,51 @@ export class App {
     }
 
     /**
+     * 设置移动数量选择器
+     */
+    setupMoveCountSelector() {
+        const buttons = document.querySelectorAll('.move-count-btn');
+        buttons.forEach(btn => {
+            // 设置初始文本和标题
+            const textKey = btn.dataset.textKey;
+            if (textKey) {
+                btn.textContent = this.i18n.t(textKey);
+                btn.title = this.i18n.t(textKey);
+            }
+            
+            btn.addEventListener('click', (e) => {
+                const count = parseInt(e.target.dataset.count);
+                this.setMoveCount(count);
+                
+                // 更新按钮状态
+                buttons.forEach(b => {
+                    b.className = b === e.target ? 'btn btn-primary move-count-btn' : 'btn btn-secondary move-count-btn';
+                });
+            });
+        });
+    }
+
+    /**
+     * 设置移动火柴数量
+     */
+    setMoveCount(count) {
+        this.currentMoveCount = count;
+        this.solver = new MatchstickSolver(this.ruleManager, count);
+        
+        // 重新求解当前等式
+        const equationInput = document.querySelector('#equation');
+        if (equationInput && equationInput.value) {
+            this.scheduleSolve(equationInput.value);
+        }
+
+        // 规则页需要更新表头与内容
+        if (document.querySelector('tbody')) {
+            this.updateRulesPageText();
+            this.renderRulesTable();
+        }
+    }
+
+    /**
      * 设置规则页面按钮
      */
     setupRulesButton() {
@@ -152,6 +214,20 @@ export class App {
                 window.location.href = 'rules.html';
             });
         }
+    }
+
+    /**
+     * 输入变化时延迟求解，避免UI阻塞
+     */
+    scheduleSolve(equation) {
+        if (this.solveTimer) {
+            clearTimeout(this.solveTimer);
+        }
+
+        this.solveTimer = setTimeout(() => {
+            this.solve(equation);
+            this.solveTimer = null;
+        }, 30);
     }
 
     /**
@@ -315,8 +391,11 @@ export class App {
         if (!tbody) return;
 
         tbody.innerHTML = '';
-        const { adds, subs, trans } = this.ruleManager.getRules();
+        const { adds, subs, trans, adds2, subs2, trans2 } = this.ruleManager.getRules();
         const legals = this.ruleManager.getLegals();
+        const useTrans = this.currentMoveCount === 1 ? trans : trans2;
+        const useAdds = this.currentMoveCount === 1 ? adds : adds2;
+        const useSubs = this.currentMoveCount === 1 ? subs : subs2;
 
         // 火柴数量映射
         const matchCounts = {
@@ -360,15 +439,15 @@ export class App {
 
             // 自身变换列
             const transCell = document.createElement('td');
-            this.renderRuleTableCharList(transCell, trans[char] || []);
+            this.renderRuleTableCharList(transCell, useTrans[char] || []);
 
             // 添加一根列
             const addsCell = document.createElement('td');
-            this.renderRuleTableCharList(addsCell, adds[char] || []);
+            this.renderRuleTableCharList(addsCell, useAdds[char] || []);
 
             // 移除一根列
             const subsCell = document.createElement('td');
-            this.renderRuleTableCharList(subsCell, subs[char] || []);
+            this.renderRuleTableCharList(subsCell, useSubs[char] || []);
 
             row.appendChild(charCell);
             row.appendChild(countCell);
@@ -475,7 +554,7 @@ export class App {
     switchMode(mode) {
         this.currentMode = mode;
         this.ruleManager.switchMode(mode);
-        this.solver = new MatchstickSolver(this.ruleManager, 1);
+        this.solver = new MatchstickSolver(this.ruleManager, this.currentMoveCount);
 
         // 手写模式自动切换到SVG显示，标准模式使用字体显示
         if (mode === 'handwritten') {
@@ -507,6 +586,7 @@ export class App {
 
         // 重新渲染规则表（如果存在）
         if (document.querySelector('tbody')) {
+            this.updateRulesPageText();
             this.renderRulesTable();
         }
 
@@ -529,6 +609,50 @@ export class App {
             this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', this.currentTheme);
             themeToggle.textContent = this.currentTheme === 'light' ? '🌙' : '☀️';
+        });
+    }
+
+    /**
+     * 设置音乐切换
+     */
+    setupMusicToggle() {
+        const musicToggle = document.querySelector('#music-toggle');
+        const bgm = document.querySelector('#bgm');
+        if (!musicToggle || !bgm) return;
+
+        // 从 localStorage 读取音乐状态，默认关闭
+        const musicEnabled = localStorage.getItem('music-enabled') === 'true';
+        bgm.volume = 0.3; // 设置音量为30%
+
+        // 设置初始状态
+        if (musicEnabled) {
+            musicToggle.textContent = '🎵';
+            musicToggle.title = this.i18n.t('musicOff');
+            // 用户交互后才能播放
+            const playMusic = () => {
+                bgm.play().catch(() => {});
+                document.removeEventListener('click', playMusic);
+            };
+            document.addEventListener('click', playMusic, { once: true });
+        } else {
+            musicToggle.textContent = '🔇';
+            musicToggle.title = this.i18n.t('musicOn');
+            bgm.pause();
+        }
+
+        // 点击切换
+        musicToggle.addEventListener('click', () => {
+            if (bgm.paused) {
+                bgm.play().catch(() => {});
+                musicToggle.textContent = '🎵';
+                musicToggle.title = this.i18n.t('musicOff');
+                localStorage.setItem('music-enabled', 'true');
+            } else {
+                bgm.pause();
+                musicToggle.textContent = '🔇';
+                musicToggle.title = this.i18n.t('musicOn');
+                localStorage.setItem('music-enabled', 'false');
+            }
         });
     }
 
@@ -601,6 +725,36 @@ export class App {
         if (input) {
             input.placeholder = this.i18n.t('inputPlaceholder');
         }
+        
+        // 更新移动火柴数标签
+        const moveCountLabel = document.querySelector('.move-count-label');
+        if (moveCountLabel) {
+            moveCountLabel.textContent = this.i18n.t('moveCount');
+        }
+        
+        // 更新移动数按钮文本和标题
+        const moveButtons = document.querySelectorAll('.move-count-btn');
+        moveButtons.forEach(btn => {
+            const textKey = btn.dataset.textKey;
+            if (textKey) {
+                btn.textContent = this.i18n.t(textKey);
+                btn.title = this.i18n.t(textKey);
+            }
+        });
+        
+        // 更新带有 data-title-key 的按钮的悬停文字（通用）
+        const titleButtons = document.querySelectorAll('[data-title-key]');
+        titleButtons.forEach(btn => {
+            const key = btn.dataset.titleKey;
+            if (key) btn.title = this.i18n.t(key);
+        });
+
+        // 音乐按钮使用动态状态标题（播放/暂停）
+        const musicToggle = document.querySelector('#music-toggle');
+        const bgm = document.querySelector('#bgm');
+        if (musicToggle && bgm) {
+            musicToggle.title = bgm.paused ? this.i18n.t('musicOn') : this.i18n.t('musicOff');
+        }
     }
 
     /**
@@ -614,7 +768,9 @@ export class App {
 
         const backBtn = document.querySelector('.back-button');
         if (backBtn) {
-            backBtn.textContent = this.i18n.t('backButton');
+            // 返回按钮在规则页使用图标显示，悬停显示本地化文字（使用 backButtonTitle 键）
+            backBtn.title = this.i18n.t('backButtonTitle');
+            // 保持按钮内部图标/文本不被覆盖 so icon remains
         }
 
         const rulesPageTitle = document.querySelector('.rules-page-title');
@@ -624,13 +780,16 @@ export class App {
 
         const thead = document.querySelector('thead');
         if (thead) {
+            const selfTransformText = this.currentMoveCount === 1 ? this.i18n.t('selfTransform') : this.i18n.t('selfTransform2');
+            const addText = this.currentMoveCount === 1 ? this.i18n.t('addOne') : this.i18n.t('addTwo');
+            const removeText = this.currentMoveCount === 1 ? this.i18n.t('removeOne') : this.i18n.t('removeTwo');
             thead.innerHTML = `
                 <tr>
                     <th>${this.i18n.t('character')}</th>
                     <th>${this.i18n.t('matchCount')}</th>
-                    <th>${this.i18n.t('selfTransform')}</th>
-                    <th>${this.i18n.t('addOne')}</th>
-                    <th>${this.i18n.t('removeOne')}</th>
+                    <th>${selfTransformText}</th>
+                    <th>${addText}</th>
+                    <th>${removeText}</th>
                 </tr>
             `;
         }
@@ -642,6 +801,18 @@ export class App {
         if (document.querySelector('tbody')) {
             this.renderRulesTable();
         }
+
+        // 同步规则页带 data-title-key 的按钮的悬停文字与移动数按钮文本
+        const titleBtns = document.querySelectorAll('[data-title-key]');
+        titleBtns.forEach(btn => {
+            const key = btn.dataset.titleKey;
+            if (key) btn.title = this.i18n.t(key);
+            // 如果是移动数按钮，也更新显示文本
+            if (btn.classList.contains('move-count-btn')) {
+                const textKey = btn.dataset.textKey;
+                if (textKey) btn.textContent = this.i18n.t(textKey);
+            }
+        });
     }
 }
 

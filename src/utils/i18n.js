@@ -50,7 +50,19 @@ export class I18n {
                 selfTransform: '自身变换（移动一根）',
                 addOne: '添加一根火柴得到...',
                 removeOne: '移除一根火柴得到...',
+                selfTransform2: '自身变换（移动两根）',
+                addTwo: '添加两根火柴得到...',
+                removeTwo: '移除两根火柴得到...',
                 emptySpace: '空格',
+                
+                // 移动火柴数选择
+                moveCount: '移动火柴数',
+                oneMatch: '1根',
+                twoMatches: '2根',
+                musicOn: '开启音乐',
+                musicOff: '关闭音乐',
+                langToggle: '切换语言',
+                backButtonTitle: '返回',
                 
                 // 页脚
                 footerTip: '💡 提示：数字',
@@ -102,7 +114,19 @@ export class I18n {
                 selfTransform: 'Self Transform (move 1)',
                 addOne: 'Add one matchstick to get...',
                 removeOne: 'Remove one matchstick to get...',
+                selfTransform2: 'Self Transform (move 2)',
+                addTwo: 'Add two matchsticks to get...',
+                removeTwo: 'Remove two matchsticks to get...',
                 emptySpace: 'space',
+                
+                // Move count selection
+                moveCount: 'Move Count',
+                oneMatch: '1 Match',
+                twoMatches: '2 Matches',
+                musicOn: 'Enable Music',
+                musicOff: 'Disable Music',
+                langToggle: 'Switch Language',
+                backButtonTitle: 'Back',
                 
                 // Footer
                 footerTip: '💡 Tip: Digit',

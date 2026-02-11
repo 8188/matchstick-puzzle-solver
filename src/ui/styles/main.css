@@ -183,7 +183,7 @@ input[type="text"] {
     padding: var(--spacing-md);
     border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
-    font-size: 1.1rem;
+    font-size: 1.4rem !important;
     font-family: 'matchstick', monospace;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
@@ -280,20 +280,20 @@ td {
     color: var(--text-secondary);
 }
 
-/* 表头样式 - thead中的th使用较大字体 */
+/* 表头样式 - thead中的th */
 thead th {
     font-weight: 600;
     font-family: 'matchstick', 'Courier New', monospace;
-    font-size: 1.2rem !important;
+    font-size: 1rem !important;
     color: var(--text-primary);
     background-color: var(--bg-tertiary);
 }
 
-/* tbody中的th（首列）使用普通大小字体 */
+/* tbody中的th（首列） */
 tbody th {
     font-weight: 600;
     font-family: 'matchstick', 'Courier New', monospace;
-    font-size: 1.2rem !important;
+    font-size: 1rem !important;
     color: var(--text-primary);
 }
 

@@ -108,6 +108,87 @@ export class HandwrittenMode extends RuleBuilder {
         this.transform('(11)H', '+');
         this.add('(1)H', '(11)H');
 
+        // ========== 移动2根火柴的规则 ==========
+        // SPACE -> 添加2根
+        this.add2(' ', '*');
+        this.add2(' ', '=');
+        this.add2(' ', '+');
+        this.add2(' ', '/');
+        this.add2(' ', '(7)H');
+        this.add2(' ', '(11)H');
+
+        // (1)H -> 添加2根
+        this.add2('(1)H', '(4)H');
+
+        // - -> 添加2根
+        this.add2('-', '(4)H');
+
+        // * -> 自身变换2根
+        this.transform2('*', '=');
+        this.transform2('*', '+');
+        this.transform2('*', '/');
+        this.transform2('*', '(7)H');
+        this.transform2('*', '(11)H');
+
+        // = -> 自身变换2根 + 添加2根
+        this.transform2('=', '*');
+        this.transform2('=', '+');
+        this.transform2('=', '/');
+        this.transform2('=', '(7)H');
+        this.transform2('=', '(11)H');
+        this.add2('=', '(0)H');
+
+        // + -> 自身变换2根
+        this.transform2('+', '*');
+        this.transform2('+', '=');
+        this.transform2('+', '/');
+        this.transform2('+', '(7)H');
+        this.transform2('+', '(11)H');
+
+        // / -> 自身变换2根
+        this.transform2('/', '*');
+        this.transform2('/', '=');
+        this.transform2('/', '+');
+        this.transform2('/', '(7)H');
+        this.transform2('/', '(11)H');
+
+        // (7)H -> 自身变换2根 + 添加2根
+        this.transform2('(7)H', '*');
+        this.transform2('(7)H', '=');
+        this.transform2('(7)H', '+');
+        this.transform2('(7)H', '/');
+        this.transform2('(7)H', '(11)H');
+        this.add2('(7)H', '(0)H');
+
+        // (11)H -> 自身变换2根 + 添加2根
+        this.transform2('(11)H', '*');
+        this.transform2('(11)H', '=');
+        this.transform2('(11)H', '+');
+        this.transform2('(11)H', '/');
+        this.transform2('(11)H', '(7)H');
+        this.add2('(11)H', '(0)H');
+
+        // 5 -> 自身变换2根 + 添加2根
+        this.transform2('5', '2');
+        this.add2('5', '8');
+
+        // (9)H -> 自身变换2根 + 添加2根
+        this.transform2('(9)H', '2');
+        this.add2('(9)H', '8');
+
+        // (6)H -> 自身变换2根 + 添加2根
+        this.transform2('(6)H', '2');
+        this.add2('(6)H', '8');
+
+        // 3 -> 添加2根
+        this.add2('3', '8');
+
+        // 2 -> 自身变换2根 + 添加2根
+        this.transform2('2', '5');
+        this.transform2('2', '(6)H');
+        this.transform2('2', '(9)H');
+        this.add2('2', '8');
+
         return this;
     }
 
@@ -132,12 +213,3 @@ export class HandwrittenMode extends RuleBuilder {
         return '手写风格，6缺上横、9缺下横、1只需1根竖线';
     }
 }
-
-/**
- * 手写模式火柴棒数量参考
- * 标准:   0  1  2  3  4  5  6  7  8  9  11
- * 数量:   6  2  5  5  4  5  6  3  7  6  4
- * 
- * 手写:   0(H) 1(H) 4(H) 6(H) 7(H) 9(H) 11(H)
- * 数量:   4    1    3    5    2    5    2
- */

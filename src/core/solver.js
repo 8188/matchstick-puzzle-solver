@@ -25,15 +25,25 @@ export class MatchstickSolver {
         const arr = tokenizeEquation(equation);
         const mutations = this.mutate(arr);
 
-        const solutions = mutations.filter(arr => Evaluator.evaluate(arr));
+        let solutions = mutations.filter(arr => Evaluator.evaluate(arr));
         const others = mutations.filter(arr => !Evaluator.evaluate(arr));
+
+        // 如果是移动2根模式，需要排除只移动1根就能达到的解
+        if (this.moveCount === 2) {
+            solutions = this.filterOutSingleMoveSolutions(arr, solutions);
+        }
 
         // 去重并规范化（移除空格差异）
         const normalize = (str) => str.replace(/ /g, '');
+        const originalNormalized = normalize(equation);
+        
         const solutionStrings = solutions.map(m => m.join(""));
         const uniqueSolutions = solutionStrings.filter((str, idx, arr) => 
             arr.findIndex(s => normalize(s) === normalize(str)) === idx
         );
+        
+        // 过滤掉与原始输入相同的解
+        const finalSolutions = uniqueSolutions.filter(str => normalize(str) !== originalNormalized);
         
         const otherStrings = others.map(m => m.join(""));
         const uniqueOthers = otherStrings.filter((str, idx, arr) => 
@@ -41,10 +51,36 @@ export class MatchstickSolver {
         );
 
         return {
-            solutions: uniqueSolutions,
+            solutions: finalSolutions,
             others: uniqueOthers,
             totalMutations: mutations.length
         };
+    }
+
+    /**
+     * 过滤掉只需移动1根火柴就能达到的解
+     * @param {Array<string>} originalArr - 原始数组
+     * @param {Array<Array<string>>} solutions - 所有解
+     * @returns {Array<Array<string>>}
+     */
+    filterOutSingleMoveSolutions(originalArr, solutions) {
+        // 获取移动1根火柴的所有可能解
+        const singleMoveMutations = this.mutateSingle(originalArr);
+        const singleMoveSolutions = singleMoveMutations.filter(arr => Evaluator.evaluate(arr));
+        
+        // 规范化函数（去除空格）
+        const normalize = (arr) => arr.join('').replace(/ /g, '');
+        const singleMoveSolutionSet = new Set(singleMoveSolutions.map(normalize));
+        
+        // 过滤掉在单根移动解集中的解，以及包含双等号、双运算符的无效解
+        return solutions.filter(solution => {
+            const normalizedSolution = normalize(solution);
+            // 检查是否包含双等号或连续运算符
+            if (/==|\+\+|--|\*\*|\/\/|\+\*|\*\+|\+-|-\+|\+\/|\/\+|-\*|\*-|-\/|\/\-|\*\/|\/\*/.test(normalizedSolution)) {
+                return false;
+            }
+            return !singleMoveSolutionSet.has(normalizedSolution);
+        });
     }
 
     /**
@@ -80,8 +116,22 @@ export class MatchstickSolver {
      * @returns {Array<Array<string>>}
      */
     mutateDouble(arr) {
-        // Phase 3 实现
-        throw new Error('Double move not implemented yet');
+        const wrappedArr = this.wrapWithSpaces(arr);
+        const results = [];
+        
+        // 1. 移动两根火柴（trans2）
+        results.push(...this.transforms2(wrappedArr));
+        
+        // 2. 移除两根 + 添加两根（moves2）
+        results.push(...this.moves2(wrappedArr));
+        
+        // 3. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
+        results.push(...this.combinedMoves(wrappedArr));
+        
+        // 4. 转换一根 + 转换一根
+        results.push(...this.transformTwice(wrappedArr));
+        
+        return results;
     }
 
     /**
@@ -178,5 +228,143 @@ export class MatchstickSolver {
             if (!addsSet) return [];
             return [...addsSet].map(re => this.replace(arr, i, re));
         });
+    }
+
+    /**
+     * 移动两根火柴的位置变换（trans2，不改变火柴总数）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    transforms2(arr) {
+        const { trans2 } = this.ruleManager.getRules();
+        if (!trans2) return [];
+        return arr.flatMap((c, i) => {
+            const transformSet = trans2[c];
+            if (!transformSet) return [];
+            return [...transformSet].map(re => this.replace(arr, i, re));
+        });
+    }
+
+    /**
+     * 移动两根火柴（先减后加）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    moves2(arr) {
+        const { subs2 } = this.ruleManager.getRules();
+        if (!subs2) return [];
+        return arr.flatMap((c, i) => {
+            const subsSet = subs2[c];
+            if (!subsSet) return [];
+            return [...subsSet].flatMap(re => this.adding2(this.replace(arr, i, re), i));
+        });
+    }
+
+    /**
+     * 添加两根火柴到其他位置
+     * @param {Array<string>} arr - 字符数组
+     * @param {number} except - 排除的索引
+     * @returns {Array<Array<string>>}
+     */
+    adding2(arr, except) {
+        const { adds2 } = this.ruleManager.getRules();
+        if (!adds2) return [];
+        return arr.flatMap((c, i) => {
+            if (i === except) return [];
+            const addsSet = adds2[c];
+            if (!addsSet) return [];
+            return [...addsSet].map(re => this.replace(arr, i, re));
+        });
+    }
+
+    /**
+     * 组合两次单根移动操作
+     * 这可以模拟某些复杂的两根火柴移动场景
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    combinedMoves(arr) {
+        const results = [];
+        const { subs, adds } = this.ruleManager.getRules();
+        
+        // 第一次移动：从位置 i 移除一根
+        arr.forEach((c, i) => {
+            const subsSet = subs[c];
+            if (!subsSet) return;
+            
+            [...subsSet].forEach(replacement1 => {
+                const arr1 = this.replace(arr, i, replacement1);
+                
+                // 第一次移动：添加到位置 j
+                arr1.forEach((d, j) => {
+                    if (i === j) return;
+                    const addsSet = adds[d];
+                    if (!addsSet) return;
+                    
+                    [...addsSet].forEach(replacement2 => {
+                        const arr2 = this.replace(arr1, j, replacement2);
+                        
+                        // 第二次移动：从位置 k 移除一根
+                        arr2.forEach((e, k) => {
+                            const subsSet2 = subs[e];
+                            if (!subsSet2) return;
+                            
+                            [...subsSet2].forEach(replacement3 => {
+                                const arr3 = this.replace(arr2, k, replacement3);
+                                
+                                // 第二次移动：添加到位置 m
+                                arr3.forEach((f, m) => {
+                                    if (k === m) return;
+                                    const addsSet2 = adds[f];
+                                    if (!addsSet2) return;
+                                    
+                                    [...addsSet2].forEach(replacement4 => {
+                                        const arr4 = this.replace(arr3, m, replacement4);
+                                        results.push(arr4);
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+        
+        return results;
+    }
+
+    /**
+     * 转换1根 + 转换1根的组合操作
+     * 例如：2→3（转换）+ (6)H→(9)H（转换）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    transformTwice(arr) {
+        const results = [];
+        const { trans } = this.ruleManager.getRules();
+        
+        // 第一步：在位置 i 转换一根火柴
+        arr.forEach((c, i) => {
+            const transSet = trans[c];
+            if (!transSet) return;
+            
+            [...transSet].forEach(replacement1 => {
+                const arr1 = this.replace(arr, i, replacement1);
+                
+                // 第二步：在位置 j（j≠i）转换另一根火柴
+                arr1.forEach((d, j) => {
+                    if (i === j) return; // 不能在同一位置转换两次
+                    const transSet2 = trans[d];
+                    if (!transSet2) return;
+                    
+                    [...transSet2].forEach(replacement2 => {
+                        const arr2 = this.replace(arr1, j, replacement2);
+                        results.push(arr2);
+                    });
+                });
+            });
+        });
+        
+        return results;
     }
 }

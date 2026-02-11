@@ -40,7 +40,7 @@ export class ModeSelector {
         const button = document.createElement('button');
         button.className = mode.name === this.currentMode ? 'btn btn-primary' : 'btn btn-secondary';
         button.dataset.mode = mode.name;
-        button.title = mode.description; // 悬停提示显示描述
+        // 不显示悬停描述
         button.textContent = mode.displayName;
         button.style.fontFamily = "'matchstick', 'Courier New', monospace";
 

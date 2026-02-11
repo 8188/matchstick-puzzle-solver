@@ -38,6 +38,32 @@ export class StandardMode extends RuleBuilder {
         this.addMultiCharPattern('11');
         this.transform('11', '4');
 
+        // 移动两根火柴的规则（根据标准规则表 Move 2 列）
+        this.transform2('+', 'x');   // + <-> x (2根)
+        this.transform2('+', '/');   // + <-> / (2根)
+        this.transform2('+', '1');   // + <-> 1 (2根)
+        this.transform2('=', 'x');   // = <-> x (2根)
+        this.transform2('=', '/');   // = <-> / (2根)
+        this.transform2('=', '1');   // = <-> 1 (2根)
+        this.transform2('x', '1');   // x <-> 1 (2根)
+        this.transform2('/', '1');   // / <-> 1 (2根)
+        this.transform2('5', '2');   // 5 <-> 2 (5根)
+        
+        // 添加两根火柴的规则（根据标准规则表 Add 2 列）
+        this.add2(' ', '+');   // SPACE -> + (2根)
+        this.add2(' ', 'x');   // SPACE -> x (2根)
+        this.add2(' ', '/');   // SPACE -> / (2根)
+        this.add2(' ', '=');   // SPACE -> = (2根)
+        this.add2(' ', '1');   // SPACE -> 1 (2根)
+        this.add2('-', '7');   // - -> 7 (3根，添加2根)
+        this.add2('1', '4');   // 1 -> 4 (4根)
+        this.add2('7', '3');   // 7 -> 3 (5根)
+        this.add2('11', '0');  // 11 -> 0 (6根)
+        this.add2('4', '9');   // 4 -> 9 (6根)
+        this.add2('5', '8');   // 5 -> 8 (7根)
+        this.add2('3', '8');   // 3 -> 8 (7根)
+        this.add2('2', '8');   // 2 -> 8 (7根)
+
         return this;
     }
 
@@ -62,9 +88,3 @@ export class StandardMode extends RuleBuilder {
         return '标准七段数码管显示，数字7使用3根火柴';
     }
 }
-
-/**
- * 火柴棒数量参考
- * 数字:        0  1  2  3  4  5  6  7  8  9
- * 火柴棍数量:  6  2  5  5  4  5  6  3  7  6
- */

@@ -18,9 +18,9 @@
         <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 2px solid var(--border-color);">
             <h1 class="rules-main-title" style="font-size: 1.5rem; letter-spacing: 2px; text-shadow: 0 0 10px var(--text-primary);"></h1>
             <div style="display: flex; gap: var(--spacing-sm);">
-                <button onclick="window.location.href='index.html'" class="btn btn-secondary back-button" style="font-size: 0.75rem;"></button>
-                <button id="lang-toggle" class="btn btn-secondary" title="切换语言">🌐</button>
-                <button id="theme-toggle" class="btn btn-secondary" title="切换主题">🌙</button>
+                <button onclick="window.location.href='index.html'" class="btn btn-secondary back-button" data-title-key="backButtonTitle" style="font-size: 0.75rem;">🔙</button>
+                <button id="lang-toggle" class="btn btn-secondary" data-title-key="langToggle">🌐</button>
+                <button id="theme-toggle" class="btn btn-secondary" data-title-key="themeToggle">🌙</button>
             </div>
         </header>
 
@@ -28,7 +28,13 @@
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
                 <h3 class="rules-page-title" style="font-size: 0.9rem; margin: 0;"></h3>
-                <div id="mode-selector" style="display: flex; gap: var(--spacing-sm);"></div>
+                <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                    <div id="mode-selector" style="display: flex; gap: var(--spacing-sm);"></div>
+                    <div id="move-count-selector" style="display: inline-flex; gap: var(--spacing-xs); background: var(--bg-tertiary); padding: 2px; border: 1px solid var(--border-color);">
+                        <button class="btn btn-primary move-count-btn" data-count="1" data-text-key="oneMatch" style="font-size: 0.75rem; padding: 4px 10px;">1根</button>
+                        <button class="btn btn-secondary move-count-btn" data-count="2" data-text-key="twoMatches" style="font-size: 0.75rem; padding: 4px 10px;">2根</button>
+                    </div>
+                </div>
             </div>
 
             <div style="overflow-x: auto;">

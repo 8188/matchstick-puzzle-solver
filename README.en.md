@@ -1,21 +1,25 @@
+
 # Matchstick Puzzle Solver 🔥
 
 [🇨🇳 中文](./README.md) | [🇬🇧 English](#)
 
-**Version: v0.1.0**
+**Version: v0.1**
 
 ---
 
-A modern matchstick puzzle solver with standard and handwritten modes.
+A modern matchstick equation solver supporting both standard and handwritten modes.
 
 ## Features
 
 - 🎯 **Smart Solving**: Automatically finds all possible solutions
 - 🎨 **Dual Modes**: Supports standard and handwritten modes
-- 🖼️ **SVG Display**: Beautiful vector graphics with realistic matchstick heads
+- 🔀 **Move Selection**: Supports solving by moving 1 or 2 matchsticks
+- 📊 **Rule Viewer**: Built-in rule table viewer for all transformation rules
+- 🖼️ **SVG Display**: Beautiful vector matchstick display with realistic heads
 - 🌍 **Bilingual**: Chinese/English interface switching
 - 🌓 **Theme Toggle**: Light/dark themes
 - 📱 **Responsive**: Desktop and mobile support
+- 🎵 **Background Music**: Play/stop background music (local resource)
 
 ## Quick Start
 
@@ -36,18 +40,18 @@ matchstick-puzzle-solver/
 ├── src/
 │   ├── core/              # Core modules
 │   ├── modes/             # Mode definitions
-│   ├── ui/                # UI layers
-│   └── utils/             # Utilities
+│   ├── ui/                # UI layer
+│   └── utils/             # Utility modules
 ├── assets/                # Assets
 ├── doc/                   # Documentation
 ├── index.html             # Interface
-└── test.js                # Tests
+└── test.js                # Test script
 ```
 
 ## Documentation
 
-- Handwritten-style rules: [doc/hand-written-rules.md](doc/hand-written-rules.md)
-- Standard seven-segment rules: [doc/stantard-rules.md](doc/stantard-rules.md)
+- Handwritten mode rules: [doc/hand-written-rules.md](doc/hand-written-rules.md)
+- Standard seven-segment mode rules: [doc/stantard-rules.md](doc/stantard-rules.md)
 
 ## Testing
 
@@ -55,21 +59,38 @@ matchstick-puzzle-solver/
 node test.js
 ```
 
-Test result: ✅ 13/13 passed
+Test result: ✅ 26/26 passed (local run)
+- Standard mode (move 1): 6 test cases ✅
+- Handwritten mode (move 1): 7 test cases ✅
+- Standard mode (move 2): 6 test cases ✅
+- Handwritten mode (move 2): 7 test cases ✅
 
 ## 📋 TODO List
 
 Planned features for future versions:
 
-- [ ] **Two-Match Mode**: Support solving puzzles by moving two matchsticks
-- [ ] **Puzzle Generator**: Automatically generate puzzles with different difficulty levels
+- [x] **Two-Match Mode**: Support solving by moving two matchsticks (✅ v0.2)
+- [ ] **Performance Optimization**:
+  - Pruning algorithm (filter impossible candidates early)
+  - Memoization (cache solved subproblems)
+  - Heuristic search (A* algorithm to prioritize promising paths)
+- [ ] **Puzzle Generator**: Automatically generate matchstick puzzles of varying difficulty
 - [ ] **Statistics Features**: 
   - Solving time tracking
   - Solution count analysis
   - User operation history
-- [ ] **Hint System**: Provide step-by-step hints for users
+- [ ] **Hint System**: Provide step-by-step hints
 - [ ] **Difficulty Ratings**: Auto-evaluate difficulty based on moves and solution count
-- [ ] **Share Function**: Generate puzzle links to share with friends
+- [ ] **Share Function**: Generate puzzle links for sharing
+- [ ] **Add more test cases**: Expand edge-case and handwritten/combined-move automated tests
+
+## Changelog
+
+- See the changelog: [doc/CHANGELOG.en.md](doc/CHANGELOG.en.md)
+
+## Screenshots
+
+![index screenshot](assets/images/index.png)
 
 ## License
 
@@ -77,6 +98,6 @@ MIT License
 
 ## Acknowledgments
 
-Based on [Original Project](https://github.com/narve/matchstick-puzzle-solver)
+Inspired by [narve/matchstick-puzzle-solver](https://github.com/narve/matchstick-puzzle-solver)
 
 ---
