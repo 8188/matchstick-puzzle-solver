@@ -18,12 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved solve debounce for UI responsiveness.
 
 ### Fixed
- - Filter out single-move duplicates in two-match results and reject invalid normalized solutions (e.g., consecutive equals signs).
- - Resolve undefined set initialization bugs.
- - Filter self-solutions: Solutions no longer include the original input equation.
- - Enhanced 2-match solver with `transformAndMove` combination .
- - Fixed missing `filterOutSingleMoveSolutions` logic in test.js to ensure test behavior matches frontend UI.
- - Handle consecutive '1' sequences (e.g. `111`) by trying alternative groupings (`['11','1']` and `['1','11']`) in the mutate/tokenize process, enabling solutions like `111+1=0` → `10+1=11`.
+- Filter out single-move duplicates in two-match results and reject invalid normalized solutions (e.g., consecutive equals signs).
+- Resolve undefined set initialization bugs.
+- Filter self-solutions: Solutions no longer include the original input equation.
+- Enhanced 2-match solver with `transformAndMove` combination.
+- Fixed missing `filterOutSingleMoveSolutions` logic in test.js to ensure test behavior matches frontend UI.
+- Handle consecutive '1' sequences (e.g. `111`) by trying alternative groupings (`['11','1']` and `['1','11']`) in the mutate/tokenize process, enabling solutions like `111+1=0` → `10+1=11`.
 
 ### Tests
 - Expanded test suite to 30 cases covering standard/handwritten modes with 1-match and 2-match movements.
