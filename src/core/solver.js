@@ -19,21 +19,35 @@ export class MatchstickSolver {
     /**
      * 求解谜题
      * @param {string} equation - 等式字符串
+     * @param {Object} options - 配置选项 {maxMutations: number, onProgress: function}
      * @returns {Object} {solutions: Array, others: Array}
      */
-    solve(equation) {
+    solve(equation, options = {}) {
+        const { maxMutations = 10000, onProgress = null } = options;
+        
         // 获取所有可能的tokenize方式
         const tokenizeVariants = this.getAllTokenizeVariants(equation);
         
-        // 对每种tokenize方式生成变换
+        // 对每种tokenize方式生成变换（带剪枝）
         const allMutations = [];
         for (const arr of tokenizeVariants) {
             const mutations = this.mutate(arr);
+            // 剪枝：限制生成的变换数量
+            if (allMutations.length + mutations.length > maxMutations) {
+                const remaining = maxMutations - allMutations.length;
+                if (remaining > 0) {
+                    allMutations.push(...mutations.slice(0, remaining));
+                }
+                break;
+            }
             allMutations.push(...mutations);
         }
 
-        let solutions = allMutations.filter(arr => Evaluator.evaluate(arr));
-        const others = allMutations.filter(arr => !Evaluator.evaluate(arr));
+        // 快速过滤：先检查基本有效性，再进行完整验证
+        const validCandidates = allMutations.filter(arr => this.isQuickValid(arr));
+        
+        let solutions = validCandidates.filter(arr => Evaluator.evaluate(arr));
+        const others = validCandidates.filter(arr => !Evaluator.evaluate(arr));
 
         // 如果是移动2根模式，需要排除只移动1根就能达到的解
         if (this.moveCount === 2) {
@@ -156,10 +170,19 @@ export class MatchstickSolver {
         // 过滤掉在单根移动解集中的解，以及包含双等号、双运算符的无效解
         return solutions.filter(solution => {
             const normalizedSolution = normalize(solution);
-            // 检查是否包含双等号或连续运算符
-            if (/==|\+\+|--|\*\*|\/\/|\+\*|\*\+|\+-|-\+|\+\/|\/\+|-\*|\*-|-\/|\/\-|\*\/|\/\*/.test(normalizedSolution)) {
+            
+            // 检查无效的连续运算符（使用与 isQuickValid 相同的逻辑）
+            // 允许=+和=-（用于等号后的正数/负数）
+            // 允许表达式开头的+和-
+            const withoutValidPatterns = normalizedSolution
+                .replace(/^[+\-]/, 'N')  // 移除开头的+/-
+                .replace(/=[+\-]/g, '=N');  // 移除=+和=-
+            
+            // 现在检查是否有任何连续运算符或双等号
+            if (/==|[+\-*/=][+\-*/=]/.test(withoutValidPatterns)) {
                 return false;
             }
+            
             return !singleMoveSolutionSet.has(normalizedSolution);
         });
     }
@@ -176,6 +199,41 @@ export class MatchstickSolver {
             return this.mutateDouble(arr);
         }
         throw new Error(`Unsupported move count: ${this.moveCount}`);
+    }
+
+    /**
+     * 快速验证表达式是否可能有效（剪枝用）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {boolean}
+     */
+    isQuickValid(arr) {
+        const str = arr.join('');
+        
+        // 必须包含等号
+        if (!str.includes('=')) return false;
+        
+        // 检查无效的连续运算符
+        // 允许=+和=-（用于等号后的正数/负数）
+        // 允许表达式开头的+和-（如+2+3=5或-1+1=0）
+        
+        // 临时移除有效的=+和=-模式，以及开头的+/-
+        const withoutValidPatterns = str
+            .replace(/^[+\-]/, 'N')  // 移除开头的+/-
+            .replace(/=[+\-]/g, '=N');  // 移除=+和=-
+        
+        // 现在检查是否有任何连续运算符或双等号
+        if (/==|[+\-*/=][+\-*/=]/.test(withoutValidPatterns)) {
+            return false;
+        }
+        
+        // 不能以运算符结尾（除了等号）
+        if (/[+\-*/]$/.test(str)) return false;
+        
+        // 等号两边必须有内容
+        const parts = str.split('=');
+        if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
+        
+        return true;
     }
 
     /**
@@ -291,11 +349,21 @@ export class MatchstickSolver {
      */
     moves(arr) {
         const { subs } = this.ruleManager.getRules();
-        return arr.flatMap((c, i) => {
+        const results = [];
+        
+        arr.forEach((c, i) => {
             const subsSet = subs[c];
-            if (!subsSet) return [];
-            return [...subsSet].flatMap(re => this.adding(this.replace(arr, i, re), i));
+            if (!subsSet) return;
+            
+            [...subsSet].forEach(re => {
+                // 添加到现有位置
+                results.push(...this.adding(this.replace(arr, i, re), i));
+                // 插入新位置
+                results.push(...this.inserting(this.replace(arr, i, re), i));
+            });
         });
+        
+        return results;
     }
 
     /**
@@ -312,6 +380,33 @@ export class MatchstickSolver {
             if (!addsSet) return [];
             return [...addsSet].map(re => this.replace(arr, i, re));
         });
+    }
+
+    /**
+     * 插入一根火柴到新位置（从空格派生新字符）
+     * @param {Array<string>} arr - 字符数组
+     * @param {number} except - 排除的索引（刚刚移除的位置）
+     * @returns {Array<Array<string>>}
+     */
+    inserting(arr, except) {
+        const { adds } = this.ruleManager.getRules();
+        const results = [];
+        
+        // 从空格中获取可以添加的字符
+        const spaceAdds = adds[' '];
+        if (!spaceAdds) return [];
+        
+        // 尝试在每个位置插入新字符（包括最前面和最后面）
+        // 注意：arr已经被wrapWithSpaces包装，所以arr[0]和arr[arr.length-1]是空格
+        for (let insertIdx = 0; insertIdx <= arr.length; insertIdx++) {
+            [...spaceAdds].forEach(newChar => {
+                const newArr = [...arr];
+                newArr.splice(insertIdx, 0, newChar);
+                results.push(newArr);
+            });
+        }
+        
+        return results;
     }
 
     /**
@@ -337,11 +432,21 @@ export class MatchstickSolver {
     moves2(arr) {
         const { subs2 } = this.ruleManager.getRules();
         if (!subs2) return [];
-        return arr.flatMap((c, i) => {
+        const results = [];
+        
+        arr.forEach((c, i) => {
             const subsSet = subs2[c];
-            if (!subsSet) return [];
-            return [...subsSet].flatMap(re => this.adding2(this.replace(arr, i, re), i));
+            if (!subsSet) return;
+            
+            [...subsSet].forEach(re => {
+                // 添加到现有位置
+                results.push(...this.adding2(this.replace(arr, i, re), i));
+                // 插入新位置
+                results.push(...this.inserting2(this.replace(arr, i, re), i));
+            });
         });
+        
+        return results;
     }
 
     /**
@@ -359,6 +464,33 @@ export class MatchstickSolver {
             if (!addsSet) return [];
             return [...addsSet].map(re => this.replace(arr, i, re));
         });
+    }
+
+    /**
+     * 插入两根火柴到新位置（从空格派生新字符）
+     * @param {Array<string>} arr - 字符数组
+     * @param {number} except - 排除的索引（刚刚移除的位置）
+     * @returns {Array<Array<string>>}
+     */
+    inserting2(arr, except) {
+        const { adds2 } = this.ruleManager.getRules();
+        if (!adds2) return [];
+        const results = [];
+        
+        // 从空格中获取可以添加的字符
+        const spaceAdds = adds2[' '];
+        if (!spaceAdds) return [];
+        
+        // 尝试在每个位置插入新字符
+        for (let insertIdx = 0; insertIdx <= arr.length; insertIdx++) {
+            [...spaceAdds].forEach(newChar => {
+                const newArr = [...arr];
+                newArr.splice(insertIdx, 0, newChar);
+                results.push(newArr);
+            });
+        }
+        
+        return results;
     }
 
     /**
@@ -396,7 +528,7 @@ export class MatchstickSolver {
                             [...subsSet2].forEach(replacement3 => {
                                 const arr3 = this.replace(arr2, k, replacement3);
                                 
-                                // 第二次移动：添加到位置 m
+                                // 第二次移动：添加到位置 m（现有位置）
                                 arr3.forEach((f, m) => {
                                     if (k === m) return;
                                     const addsSet2 = adds[f];
@@ -407,6 +539,18 @@ export class MatchstickSolver {
                                         results.push(arr4);
                                     });
                                 });
+                                
+                                // 第二次移动：插入到新位置
+                                const spaceAdds = adds[' '];
+                                if (spaceAdds) {
+                                    for (let insertIdx = 0; insertIdx <= arr3.length; insertIdx++) {
+                                        [...spaceAdds].forEach(newChar => {
+                                            const arr4 = [...arr3];
+                                            arr4.splice(insertIdx, 0, newChar);
+                                            results.push(arr4);
+                                        });
+                                    }
+                                }
                             });
                         });
                     });
@@ -479,7 +623,7 @@ export class MatchstickSolver {
                     [...subsSet].forEach(replacement2 => {
                         const arr2 = this.replace(arr1, j, replacement2);
                         
-                        // 第三步：在位置 k 添加一根火柴
+                        // 第三步：在位置 k 添加一根火柴（现有位置）
                         arr2.forEach((e, k) => {
                             if (k === i || k === j) return;
                             const addsSet = adds[e];
@@ -490,6 +634,18 @@ export class MatchstickSolver {
                                 results.push(arr3);
                             });
                         });
+                        
+                        // 第三步：插入到新位置
+                        const spaceAdds = adds[' '];
+                        if (spaceAdds) {
+                            for (let insertIdx = 0; insertIdx <= arr2.length; insertIdx++) {
+                                [...spaceAdds].forEach(newChar => {
+                                    const arr3 = [...arr2];
+                                    arr3.splice(insertIdx, 0, newChar);
+                                    results.push(arr3);
+                                });
+                            }
+                        }
                     });
                 });
             });

@@ -3,7 +3,7 @@
 
 [🇨🇳 中文](./README.md) | [🇬🇧 English](#)
 
-**Version: v0.1**
+**Version: v0.3**
 
 ---
 
@@ -14,8 +14,11 @@ A modern matchstick equation solver supporting both standard and handwritten mod
 - 🎯 **Smart Solving**: Automatically finds all possible solutions
 - 🎨 **Dual Modes**: Supports standard and handwritten modes
 - 🔀 **Move Selection**: Supports solving by moving 1 or 2 matchsticks
+- ⚡ **Performance Optimized**: Pruning algorithms + non-blocking async solving for speed
+- 🧮 **Advanced Syntax**: Supports signed numbers (=+, =-, leading +/-) and leading zero filtering
 - 📊 **Rule Viewer**: Built-in rule table viewer for all transformation rules
 - 🖼️ **SVG Display**: Beautiful vector matchstick display with realistic heads
+- 🐛 **Debug Mode**: Add `?debug=1` to view solving time and statistics
 - 🌍 **Bilingual**: Chinese/English interface switching
 - 🌓 **Theme Toggle**: Light/dark themes
 - 📱 **Responsive**: Desktop and mobile support
@@ -64,19 +67,14 @@ node test.js
 Planned features for future versions:
 
 - [x] **Two-Match Mode**: Support solving by moving two matchsticks (✅ v0.2)
-- [ ] **Performance Optimization**:
-  - Pruning algorithm (filter impossible candidates early)
-  - Memoization (cache solved subproblems)
-  - Heuristic search (A* algorithm to prioritize promising paths)
+- [x] **Performance Optimization**: Pruning algorithms, non-blocking solving (✅ v0.3)
+- [x] **Statistics Features**: Solving time tracking (✅ v0.3, debug mode)
+- [ ] **Graph Database Optimization**: Use graph structures for faster large-scale search
+- [ ] **Custom Rules**: Allow users to define custom matchstick transformation rules
 - [ ] **Puzzle Generator**: Automatically generate matchstick puzzles of varying difficulty
-- [ ] **Statistics Features**: 
-  - Solving time tracking
-  - Solution count analysis
-  - User operation history
 - [ ] **Hint System**: Provide step-by-step hints
 - [ ] **Difficulty Ratings**: Auto-evaluate difficulty based on moves and solution count
 - [ ] **Share Function**: Generate puzzle links for sharing
-- [ ] **Add more test cases**: Expand edge-case and handwritten/combined-move automated tests
 
 ## Changelog
 

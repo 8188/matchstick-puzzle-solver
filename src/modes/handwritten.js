@@ -17,13 +17,7 @@ import { RuleBuilder } from '../core/rules.js';
 export class HandwrittenMode extends RuleBuilder {
     constructor() {
         super();
-        console.log('🎨 HandwrittenMode 构造中...');
         this.buildRules();
-        console.log('✅ HandwrittenMode 规则构建完成', {
-            trans0: Array.from(this.trans['0']),
-            adds0: Array.from(this.adds['0']),
-            subs0: Array.from(this.subs['0'])
-        });
     }
 
     buildRules() {

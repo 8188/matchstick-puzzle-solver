@@ -224,8 +224,8 @@ export class App {
             clearTimeout(this.solveTimer);
         }
 
-        this.solveTimer = setTimeout(() => {
-            this.solve(equation);
+        this.solveTimer = setTimeout(async () => {
+            await this.solve(equation);
             this.solveTimer = null;
         }, 30);
     }
@@ -350,29 +350,53 @@ export class App {
     /**
      * 加载示例
      */
-    loadSample(equation) {
+    async loadSample(equation) {
         const equationInput = document.querySelector("#equation");
         if (equationInput) {
             equationInput.value = equation;
             this.updateEquationPreview(equation);
-            this.solve(equation);
+            await this.solve(equation);
         }
     }
 
     /**
-     * 求解等式
+     * 求解等式（异步版本）
      */
-    solve(equation) {
+    async solve(equation) {
+        const statusElement = document.querySelector("#status");
+        if (!statusElement) return;
+        
+        // 显示计算中提示
+        statusElement.innerHTML = '<div class="card fade-in" style="text-align: center; padding: var(--spacing-lg);"><p style="color: var(--text-secondary);">⏳ ' + (this.i18n.getCurrentLanguage() === 'zh' ? '正在计算中...' : 'Computing...') + '</p></div>';
+        
+        // 使用 requestIdleCallback 或 setTimeout 让出主线程
+        await new Promise(resolve => setTimeout(resolve, 10));
+        
+        const startTime = performance.now();
+        
         const isOK = Evaluator.evaluate(equation);
-        const result = this.solver.solve(equation);
-
-        this.renderResults(equation, isOK, result);
+        
+        // 分块处理：对于长表达式，限制最大变换数
+        // 手写模式的长表达式需要更大的搜索空间
+        const maxMutations = equation.length > 20 ? 15000 : (equation.length > 15 ? 10000 : 10000);
+        const result = this.solver.solve(equation, { maxMutations });
+        
+        const endTime = performance.now();
+        const duration = (endTime - startTime).toFixed(2);
+        
+        if (this.debugMode) {
+            console.log(`🔍 求解耗时: ${duration}ms, 找到 ${result.solutions.length} 个解`);
+            console.log('前5个解:', result.solutions.slice(0, 5));
+            console.log('总变换数:', result.totalMutations);
+        }
+        
+        this.renderResults(equation, isOK, result, duration);
     }
 
     /**
      * 渲染结果
      */
-    renderResults(equation, isOK, result) {
+    renderResults(equation, isOK, result, duration = null) {
         const statusElement = document.querySelector("#status");
         if (!statusElement) return;
 
@@ -381,6 +405,14 @@ export class App {
         // 使用ResultList组件渲染结果
         const resultsDisplay = this.resultList.renderGroupedResults(result, isOK);
         statusElement.appendChild(resultsDisplay);
+        
+        // 调试模式下显示性能信息
+        if (this.debugMode && duration !== null) {
+            const perfInfo = document.createElement('p');
+            perfInfo.style.cssText = 'text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin-top: var(--spacing-sm); opacity: 0.6;';
+            perfInfo.textContent = `⚡ ${duration}ms`;
+            statusElement.appendChild(perfInfo);
+        }
     }
 
     /**
@@ -696,6 +728,12 @@ export class App {
      * 更新页面文本（不包括标题）
      */
     updatePageText() {
+        // 更新页面标题
+        const title = document.querySelector('h1:not(.rules-main-title)');
+        if (title && !title.classList.contains('rules-main-title')) {
+            title.innerHTML = `■ ${this.i18n.t('pageTitle').toUpperCase()}`;
+        }
+        
         // 更新INPUT标题
         const inputTitle = document.querySelector('.input-title');
         if (inputTitle) {

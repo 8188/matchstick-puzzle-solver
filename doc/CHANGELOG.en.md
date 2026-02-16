@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- Graph database optimization: Use graph structures for faster large-scale search
+- Custom rules feature: Allow users to define custom matchstick transformation rules
+
+## [v0.3] - 2026-02-16
+
+### Added
+- **Performance Optimization**:
+  - Implemented `isQuickValid()` pruning algorithm to filter invalid candidates early
+  - Added `maxMutations` parameter to limit search space (affects solution completeness and overall speed)
+  - Async solving: Made `solve()` method non-blocking to prevent browser freezing
+  - 24x performance improvement: Test suite execution time reduced from 132s to 5.4s
+- **Advanced Syntax Support**:
+  - Support for signed numbers after equals: `=+`, `=-` (e.g., `19-3-9=+7`)
+  - Support for leading signs in expressions: `+`, `-` (e.g., `+2+3=5`)
+  - Filter leading zeros: Reject invalid numbers like `09`, `08`
+- **Debug Features**:
+  - Added `?debug=1` URL parameter to enable debug mode
+  - Console displays solving time, solution count, total mutations, and other statistics
+  - Frontend `performance.now()` precision timing
+
+### Changed
+- Optimized dynamic `maxMutations` settings in `app.js`: Longer expressions use larger search space
+- Enhanced test output formatting: Clearer grouping and execution time display
+
+### Fixed
+- Fixed debug logging in `handwritten.js` displaying incorrect characters
+
+### Docs
+- Fixed rule table discrepancies in `doc/stantard-rules.md`
+- Synchronized `test.js` with browser code logic to ensure test environment consistency
+
 ## [v0.2] - 2026-02-11
 
 ### Added
