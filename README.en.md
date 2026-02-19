@@ -14,27 +14,17 @@ A modern matchstick equation solver supporting both standard and handwritten mod
 - 🎯 **Smart Solving**: Automatically finds all possible solutions
 - 🎨 **Dual Modes**: Supports standard and handwritten modes
 - 🔀 **Move Selection**: Supports solving by moving 1 or 2 matchsticks
-- ⚡ **Performance Optimized**: Pruning algorithms + non-blocking async solving for speed
 - 🧮 **Advanced Syntax**: Supports signed numbers (=+, =-, leading +/-) and leading zero filtering
-- 📊 **Rule Viewer**: Built-in rule table viewer for all transformation rules
 - 🖼️ **SVG Display**: Beautiful vector matchstick display with realistic heads
-- 🐛 **Debug Mode**: Add `?debug=1` to view solving time and statistics
 - 🌍 **Bilingual**: Chinese/English interface switching
 - 🌓 **Theme Toggle**: Light/dark themes
-- 📱 **Responsive**: Desktop and mobile support
 - 🎵 **Background Music**: Play/stop background music (local resource)
 
 ## Quick Start
 
-```bash
-# Using Python
-python -m http.server 8080
+Open `index.html` directly in your browser.
 
-# Or using Node.js
-npx http-server -p 8080
-```
-
-Then visit: `http://localhost:8080/index.html`
+[Online address](https://8188.github.io/matchstick-puzzle-solver)
 
 ## Project Structure
 
@@ -69,12 +59,10 @@ Planned features for future versions:
 - [x] **Two-Match Mode**: Support solving by moving two matchsticks (✅ v0.2)
 - [x] **Performance Optimization**: Pruning algorithms, non-blocking solving (✅ v0.3)
 - [x] **Statistics Features**: Solving time tracking (✅ v0.3, debug mode)
-- [ ] **Graph Database Optimization**: Use graph structures for faster large-scale search
 - [ ] **Custom Rules**: Allow users to define custom matchstick transformation rules
 - [ ] **Puzzle Generator**: Automatically generate matchstick puzzles of varying difficulty
 - [ ] **Hint System**: Provide step-by-step hints
 - [ ] **Difficulty Ratings**: Auto-evaluate difficulty based on moves and solution count
-- [ ] **Share Function**: Generate puzzle links for sharing
 
 ## Changelog
 
