@@ -9,7 +9,7 @@ export class I18n {
         this.translations = {
             zh: {
                 // 页面标题和导航
-                pageTitle: '火柴棒等式解题工具箱',
+                pageTitle: '火柴棒等式求解器',
                 themeToggle: '切换主题',
                 
                 // 说明文字
@@ -63,6 +63,42 @@ export class I18n {
                 musicOff: '关闭音乐',
                 langToggle: '切换语言',
                 backButtonTitle: '返回',
+                solveBtn: '求解',
+                // 搜索设置与过滤
+                maxSearchLabel: '🔍 搜索上限',
+                filterSignedBtn: '⚡ 过滤±解',
+                filterSignedBtnOn: '✅ 已过滤±解',
+                solveTime: '⏱',
+                // 求解方法名称
+                method_transform: '移位变换',
+                method_move: '移动火柴',
+                method_multiChar: '多字符',
+                method_transform2: '双变换',
+                method_move2: '双移动',
+                method_moveSubThenAdd: '移去再添',
+                method_moveAddThenSub: '移添再去',
+                method_removeRemoveAdd2: '双去双添',
+                method_combinedMoves: '两次移动',
+                method_transformTwice: '两次变换',
+                method_transformAndMove: '变换+移动',
+                method_unknown: '未知',
+                // 方法详细描述
+                desc_transform: '某位置移动1根火柴改变字符',
+                desc_move: '移除1根再添加1根到另一位置',
+                desc_multiChar: '多字符转换（如11→4）',
+                desc_transform2: '某位置移动2根火柴改变字符',
+                desc_move2: '移除2根再添加2根到另一位置',
+                desc_moveSubThenAdd: '移除1根+移动1根，再添加1根',
+                desc_moveAddThenSub: '添加1根+移动1根，再移除1根',
+                desc_removeRemoveAdd2: '移除2根，再添加2根到同一位置',
+                desc_combinedMoves: '两次单根移动操作',
+                desc_transformTwice: '两次单根位置变换',
+                desc_transformAndMove: '变扢1根+移除1根+添加1根',
+                // 规则表新列
+                moveSubCol: '移动一根＆移除一根得到...',
+                moveAddCol: '移动一根＆添加一根得到...',
+                moveSubCol2: '移动两根＆移除两根得到...',
+                moveAddCol2: '移动两根＆添加两根得到...',
                 
                 // 页脚
                 footerTip: '💡 提示：数字',
@@ -127,6 +163,42 @@ export class I18n {
                 musicOff: 'Disable Music',
                 langToggle: 'Switch Language',
                 backButtonTitle: 'Back',
+                solveBtn: 'SOLVE',
+                // Search settings & filter
+                maxSearchLabel: '🔍 Search Limit',
+                filterSignedBtn: '⚡ Filter ±',
+                filterSignedBtnOn: '✅ Filtered ±',
+                solveTime: '⏱',
+                // Method names
+                method_transform: 'Transform',
+                method_move: 'Move',
+                method_multiChar: 'Multi-Char',
+                method_transform2: '2×Transform',
+                method_move2: '2×Move',
+                method_moveSubThenAdd: 'moveSub+Add',
+                method_moveAddThenSub: 'moveAdd+Sub',
+                method_removeRemoveAdd2: '2×Sub+2×Add',
+                method_combinedMoves: '2×Move',
+                method_transformTwice: '2×Transform',
+                method_transformAndMove: 'Trans+Move',
+                method_unknown: 'Unknown',
+                // Method descriptions
+                desc_transform: 'Move 1 matchstick at a position to change character',
+                desc_move: 'Remove 1 then add 1 at another position',
+                desc_multiChar: 'Multi-character transform (e.g. 11→4)',
+                desc_transform2: 'Move 2 matchsticks at a position to change character',
+                desc_move2: 'Remove 2 then add 2 at another position',
+                desc_moveSubThenAdd: 'Remove 1 + move 1, then add 1',
+                desc_moveAddThenSub: 'Add 1 + move 1, then remove 1',
+                desc_removeRemoveAdd2: 'Remove 2, then add 2 at same position',
+                desc_combinedMoves: 'Two single-stick move operations',
+                desc_transformTwice: 'Two single-stick position transforms',
+                desc_transformAndMove: 'Transform 1 + remove 1 + add 1',
+                // Rules table new columns
+                moveSubCol: 'Move 1 & Remove 1 to get...',
+                moveAddCol: 'Move 1 & Add 1 to get...',
+                moveSubCol2: 'Move 2 & Remove 2 to get...',
+                moveAddCol2: 'Move 2 & Add 2 to get...',
                 
                 // Footer
                 footerTip: '💡 Tip: Digit',

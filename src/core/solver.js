@@ -20,27 +20,31 @@ export class MatchstickSolver {
      * 求解谜题
      * @param {string} equation - 等式字符串
      * @param {Object} options - 配置选项 {maxMutations: number, onProgress: function}
-     * @returns {Object} {solutions: Array, others: Array}
+     * @returns {Object} {solutions: Array<{str,method}>, others: Array<string>}
      */
     solve(equation, options = {}) {
         const { maxMutations = 10000, onProgress = null } = options;
         
+        const normalize = (str) => str.replace(/ /g, '');
+        
         // 获取所有可能的tokenize方式
         const tokenizeVariants = this.getAllTokenizeVariants(equation);
         
-        // 对每种tokenize方式生成变换（带剪枝）
+        // 对每种tokenize方式生成带方法标记的变换（带剪枝）
         const allMutations = [];
+        const methodMap = new Map(); // normalized str -> first method that found it
+        
         for (const arr of tokenizeVariants) {
-            const mutations = this.mutate(arr);
-            // 剪枝：限制生成的变换数量
-            if (allMutations.length + mutations.length > maxMutations) {
-                const remaining = maxMutations - allMutations.length;
-                if (remaining > 0) {
-                    allMutations.push(...mutations.slice(0, remaining));
+            const tagged = this.mutateTagged(arr);
+            for (const { arr: mutArr, method } of tagged) {
+                if (allMutations.length >= maxMutations) break;
+                allMutations.push(mutArr);
+                const key = normalize(mutArr.join(''));
+                if (!methodMap.has(key)) {
+                    methodMap.set(key, method);
                 }
-                break;
             }
-            allMutations.push(...mutations);
+            if (allMutations.length >= maxMutations) break;
         }
 
         // 快速过滤：先检查基本有效性，再进行完整验证
@@ -55,7 +59,6 @@ export class MatchstickSolver {
         }
 
         // 去重并规范化（移除空格差异）
-        const normalize = (str) => str.replace(/ /g, '');
         const originalNormalized = normalize(equation);
         
         const solutionStrings = solutions.map(m => m.join(""));
@@ -63,8 +66,13 @@ export class MatchstickSolver {
             arr.findIndex(s => normalize(s) === normalize(str)) === idx
         );
         
-        // 过滤掉与原始输入相同的解
-        const finalSolutions = uniqueSolutions.filter(str => normalize(str) !== originalNormalized);
+        // 过滤掉与原始输入相同的解，并附加方法信息
+        const finalSolutions = uniqueSolutions
+            .filter(str => normalize(str) !== originalNormalized)
+            .map(str => ({
+                str,
+                method: methodMap.get(normalize(str)) || 'unknown'
+            }));
         
         const otherStrings = others.map(m => m.join(""));
         const uniqueOthers = otherStrings.filter((str, idx, arr) => 
@@ -72,7 +80,7 @@ export class MatchstickSolver {
         );
 
         return {
-            solutions: finalSolutions,
+            solutions: finalSolutions, // Array<{str: string, method: string}>
             others: uniqueOthers,
             totalMutations: allMutations.length
         };
@@ -188,6 +196,35 @@ export class MatchstickSolver {
     }
 
     /**
+     * 生成所有可能的变换（带方法标记）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<{arr: Array<string>, method: string}>}
+     */
+    mutateTagged(arr) {
+        if (this.moveCount === 1) {
+            const wrappedArr = this.wrapWithSpaces(arr);
+            return [
+                ...this.transforms(wrappedArr).map(a => ({ arr: a, method: 'transform' })),
+                ...this.moves(wrappedArr).map(a => ({ arr: a, method: 'move' })),
+                ...this.multiCharTransforms(arr).map(a => ({ arr: a, method: 'multiChar' })),
+            ];
+        } else if (this.moveCount === 2) {
+            const wrappedArr = this.wrapWithSpaces(arr);
+            return [
+                ...this.transforms2(wrappedArr).map(a => ({ arr: a, method: 'transform2' })),
+                ...this.moves2(wrappedArr).map(a => ({ arr: a, method: 'move2' })),
+                ...this.moveSubThenAdd(wrappedArr).map(a => ({ arr: a, method: 'moveSubThenAdd' })),
+                ...this.moveAddThenSub(wrappedArr).map(a => ({ arr: a, method: 'moveAddThenSub' })),
+                ...this.removeRemoveAdd2(wrappedArr).map(a => ({ arr: a, method: 'removeRemoveAdd2' })),
+                ...this.combinedMoves(wrappedArr).map(a => ({ arr: a, method: 'combinedMoves' })),
+                ...this.transformTwice(wrappedArr).map(a => ({ arr: a, method: 'transformTwice' })),
+                ...this.transformAndMove(wrappedArr).map(a => ({ arr: a, method: 'transformAndMove' })),
+            ];
+        }
+        throw new Error(`Unsupported move count: ${this.moveCount}`);
+    }
+
+    /**
      * 生成所有可能的变换
      * @param {Array<string>} arr - 字符数组
      * @returns {Array<Array<string>>}
@@ -264,13 +301,22 @@ export class MatchstickSolver {
         // 2. 移除两根 + 添加两根（moves2）
         results.push(...this.moves2(wrappedArr));
         
-        // 3. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
+        // 3. "移动一根&移除一根" + 添加一根（moveSub at i + adds at j，净0）
+        results.push(...this.moveSubThenAdd(wrappedArr));
+
+        // 4. "移动一根&添加一根" + 移除一根（moveAdd at i + subs at j，净0）
+        results.push(...this.moveAddThenSub(wrappedArr));
+
+        // 5. 移除一根 + 移除一根 + 添加两根（subs at i + subs at j + adds2 at k，净0）
+        results.push(...this.removeRemoveAdd2(wrappedArr));
+
+        // 6. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
         results.push(...this.combinedMoves(wrappedArr));
         
-        // 4. 转换一根 + 转换一根（如 2→3 + (6)H→(9)H）
+        // 7. 转换一根 + 转换一根（如 2→3 + (6)H→(9)H）
         results.push(...this.transformTwice(wrappedArr));
         
-        // 5. 转换一根 + 移除一根 + 添加一根（顺序：transform → remove → add）
+        // 8. 转换一根 + 移除一根 + 添加一根（顺序：transform → remove → add）
         results.push(...this.transformAndMove(wrappedArr));
         
         return results;
@@ -655,9 +701,125 @@ export class MatchstickSolver {
     }
 
     /**
-     * 移除1根 + 添加1根 + 转换1根的组合操作
-     * 例如：41+29=78 → 41+38=79 (9→8添加, 8→9移除, 2→3转换)
+     * "移动一根&移除一根" at 位置i + "添加一根" at 位置j
+     * 例如：8→9（移除1根），同时另一位置通过moveSub转换（净-1），
+     * 但此方法是：moveSub在i（净-1），adds在j（净+1）→ 合计净0
      * @param {Array<string>} arr - 字符数组
      * @returns {Array<Array<string>>}
      */
+    moveSubThenAdd(arr) {
+        const results = [];
+        const { moveSub, adds } = this.ruleManager.getRules();
+        if (!moveSub) return results;
+
+        arr.forEach((c, i) => {
+            const moveSubSet = moveSub[c];
+            if (!moveSubSet || moveSubSet.size === 0) return;
+
+            [...moveSubSet].forEach(r1 => {
+                const arr1 = this.replace(arr, i, r1);
+
+                // 在另一位置添加1根火柴
+                arr1.forEach((d, j) => {
+                    if (j === i) return;
+                    const addsSet = adds[d];
+                    if (!addsSet || addsSet.size === 0) return;
+                    [...addsSet].forEach(r2 => {
+                        results.push(this.replace(arr1, j, r2));
+                    });
+                });
+
+                // 从空格位置插入新字符（adds from space）
+                const spaceAdds = adds[' '];
+                if (spaceAdds) {
+                    for (let insertIdx = 0; insertIdx <= arr1.length; insertIdx++) {
+                        [...spaceAdds].forEach(newChar => {
+                            const arr2 = [...arr1];
+                            arr2.splice(insertIdx, 0, newChar);
+                            results.push(arr2);
+                        });
+                    }
+                }
+            });
+        });
+
+        return results;
+    }
+
+    /**
+     * "移动一根&添加一根" at 位置i + "移除一根" at 位置j
+     * 例如：4→5（moveAdd，需从别处接收1根），8→9（subs，提供1根）
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    moveAddThenSub(arr) {
+        const results = [];
+        const { moveAdd, subs } = this.ruleManager.getRules();
+        if (!moveAdd) return results;
+
+        arr.forEach((c, i) => {
+            const moveAddSet = moveAdd[c];
+            if (!moveAddSet || moveAddSet.size === 0) return;
+
+            [...moveAddSet].forEach(r1 => {
+                const arr1 = this.replace(arr, i, r1);
+
+                // 在另一位置移除1根火柴（提供给位置i）
+                arr1.forEach((d, j) => {
+                    if (j === i) return;
+                    const subsSet = subs[d];
+                    if (!subsSet || subsSet.size === 0) return;
+                    [...subsSet].forEach(r2 => {
+                        results.push(this.replace(arr1, j, r2));
+                    });
+                });
+            });
+        });
+
+        return results;
+    }
+
+    /**
+     * 移除一根 at 位置i + 移除一根 at 位置j + 添加两根 at 位置k
+     * 例如：8→9（-1）+ 8→9（-1）+ 空格→1（+2）= 净0
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    removeRemoveAdd2(arr) {
+        const results = [];
+        const { subs, adds2 } = this.ruleManager.getRules();
+        if (!adds2) return results;
+
+        arr.forEach((c, i) => {
+            const subsSet1 = subs[c];
+            if (!subsSet1 || subsSet1.size === 0) return;
+
+            [...subsSet1].forEach(r1 => {
+                const arr1 = this.replace(arr, i, r1);
+
+                arr1.forEach((d, j) => {
+                    if (j === i) return;
+                    const subsSet2 = subs[d];
+                    if (!subsSet2 || subsSet2.size === 0) return;
+
+                    [...subsSet2].forEach(r2 => {
+                        const arr2 = this.replace(arr1, j, r2);
+
+                        // 在第三个位置添加两根火柴
+                        arr2.forEach((e, k) => {
+                            if (k === i || k === j) return;
+                            const adds2Set = adds2[e];
+                            if (!adds2Set || adds2Set.size === 0) return;
+                            [...adds2Set].forEach(r3 => {
+                                results.push(this.replace(arr2, k, r3));
+                            });
+                        });
+                    });
+                });
+            });
+        });
+
+        return results;
+    }
+
 }

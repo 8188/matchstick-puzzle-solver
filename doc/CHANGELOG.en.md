@@ -11,6 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Graph database optimization: Use graph structures for faster large-scale search
 - Custom rules feature: Allow users to define custom matchstick transformation rules
 
+## [v0.4] - 2026-02-24
+
+### Added
+- **Test Refactoring**:
+  - Moved test files to `test/` folder, renamed to `test-solver.js`
+  - Test data extracted to `test/cases.json` for easier test case additions
+  - Test code refactored to import from `src/modes`, eliminating code duplication
+- **Rules Page Enhancement**:
+  - Move-2 mode now displays "Move 1 & Remove 1" and "Move 1 & Add 1" columns
+  - Rules table dynamically adjusts column display based on move count
+- **Detailed Solution Display**:
+  - Each solution now shows method badge (e.g. "Transform", "2×Move", etc.)
+  - Added method detailed descriptions (bilingual)
+  - Display computation time (milliseconds)
+- **Advanced Configuration**:
+  - Search limit input box (default 10000, range 1000-500000)
+  - Filter signed solutions button (optionally filter solutions with +/- signs)
+  - Number input uses digital-7 font, spinner buttons hidden
+- **Theme Synchronization**:
+  - Main page and rules page now synchronize theme switching via localStorage
+  - Maintain theme consistency across both pages
+- **Test Cases**:
+  - test.js supports new solution format, displays method tags for each solution
+  - Added two new test cases: `94-35=48` (covers `moveAddThenSub`) and `1+7=8+8` (covers `removeRemoveAdd2`)
+
+### Changed
+- Unified button styles: Adjusted mode selector button sizes for more compact layout
+- Removed auto-solving on mode/move count switch: Solutions now only computed when clicking solve button
+- `solve()` return structure changed: `solutions` now in `Array<{str, method}>` format
+
+### Fixed
+- Display computation time even when no solutions found
+
+### Docs
+- Updated README and CHANGELOG in both Chinese and English
+
 ## [v0.3] - 2026-02-16
 
 ### Added

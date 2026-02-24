@@ -1,0 +1,18 @@
+{
+  "name": "matchstick-puzzle-solver",
+  "version": "0.4.0",
+  "description": "A matchstick equation solver supporting both standard and handwritten modes",
+  "type": "module",
+  "main": "src/ui/app.js",
+  "scripts": {
+    "test": "node test/test-solver.js"
+  },
+  "keywords": [
+    "matchstick",
+    "puzzle",
+    "solver",
+    "equation"
+  ],
+  "author": "",
+  "license": "MIT"
+}

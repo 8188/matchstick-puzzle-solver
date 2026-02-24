@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -26,10 +26,10 @@
 
         <!-- 规则表 -->
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm); flex-wrap: wrap; gap: var(--spacing-sm);">
                 <h3 class="rules-page-title" style="font-size: 0.9rem; margin: 0;"></h3>
-                <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
-                    <div id="mode-selector" style="display: flex; gap: var(--spacing-sm);"></div>
+                <div style="display: flex; gap: var(--spacing-sm); align-items: center; flex-wrap: wrap;">
+                    <div id="mode-selector" style="display: flex; gap: var(--spacing-xs);"></div>
                     <div id="move-count-selector" style="display: inline-flex; gap: var(--spacing-xs); background: var(--bg-tertiary); padding: 2px; border: 1px solid var(--border-color);">
                         <button class="btn btn-primary move-count-btn" data-count="1" data-text-key="oneMatch" style="font-size: 0.75rem; padding: 4px 10px;">1根</button>
                         <button class="btn btn-secondary move-count-btn" data-count="2" data-text-key="twoMatches" style="font-size: 0.75rem; padding: 4px 10px;">2根</button>
@@ -57,8 +57,8 @@
     <script type="module">
         import { App } from './src/ui/app.js';
 
-        // 先同步主题
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        // 先同步主题（优先 localStorage，默认 dark）
+        const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         // 创建应用实例（规则页会自动渲染规则表和模式选择器）

@@ -48,7 +48,7 @@ export class StandardMode extends RuleBuilder {
         this.transform2('x', '1');   // x <-> 1 (2根)
         this.transform2('/', '1');   // / <-> 1 (2根)
         this.transform2('5', '2');   // 5 <-> 2 (5根)
-        
+
         // 添加两根火柴的规则（根据标准规则表 Add 2 列）
         this.add2(' ', '+');   // SPACE -> + (2根)
         this.add2(' ', 'x');   // SPACE -> x (2根)
@@ -63,6 +63,39 @@ export class StandardMode extends RuleBuilder {
         this.add2('5', '8');   // 5 -> 8 (7根)
         this.add2('3', '8');   // 3 -> 8 (7根)
         this.add2('2', '8');   // 2 -> 8 (7根)
+
+        // ========== Move 1 & Remove 1 规则（净-1，配合 adds 使用）==========
+        // 源: stantard-rules.md 第"Move 1 & Remove 1"列
+        this.addRemoveTrans('x', '-');
+        this.addRemoveTrans('/', '-');
+        this.addRemoveTrans('1', '-');
+        this.addRemoveTrans('7', '=');
+        this.addRemoveTrans('7', '+');
+        this.addRemoveTrans('4', '7');
+        this.addRemoveTrans('11', '7');
+        this.addRemoveTrans('5', '4');
+        this.addRemoveTrans('3', '4');
+        this.addRemoveTrans('6', '3');
+        this.addRemoveTrans('6', '2');
+        this.addRemoveTrans('9', '2');
+        this.addRemoveTrans('0', '2');
+        this.addRemoveTrans('0', '3');
+        this.addRemoveTrans('0', '5');
+
+        // ========== Move 1 & Add 1 规则（净+1，配合 subs 使用）==========
+        // 源: stantard-rules.md 第"Move 1 & Add 1"列
+        this.addAddTrans('-', 'x');
+        this.addAddTrans('-', '/');
+        this.addAddTrans('-', '1');
+        this.addAddTrans('=', '7');
+        this.addAddTrans('+', '7');
+        this.addAddTrans('4', '3');
+        this.addAddTrans('4', '5');
+        this.addAddTrans('5', '0');
+        this.addAddTrans('3', '6');
+        this.addAddTrans('3', '0');
+        this.addAddTrans('2', '6');
+        this.addAddTrans('2', '0');
 
         return this;
     }

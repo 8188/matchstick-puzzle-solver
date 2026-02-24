@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>火柴棒等式解题工具箱</title>
+    <title>火柴棒等式求解器</title>
 
     <!-- 样式 -->
     <link rel="stylesheet" href="src/ui/styles/main.css">
@@ -20,7 +20,7 @@
             <div style="display: flex; gap: var(--spacing-sm);">
                 <button id="lang-toggle" class="btn btn-secondary" data-title-key="langToggle">🌐</button>
                 <button id="music-toggle" class="btn btn-secondary">🎵</button>
-                <button id="theme-toggle" class="btn btn-secondary" data-title-key="themeToggle">🌙</button>
+                <button id="theme-toggle" class="btn btn-secondary" data-title-key="themeToggle">☀️</button>
             </div>
         </header>
 
@@ -53,11 +53,19 @@
         <!-- 输入区域 -->
         <div class="card" style="margin-bottom: var(--spacing-md);">
             <h3 class="input-title" style="font-size: 0.9rem; margin-bottom: var(--spacing-sm);">▸ INPUT</h3>
-            <div style="display: flex; gap: var(--spacing-sm); align-items: stretch;">
-                <form onsubmit="return false;" style="flex: 1;">
+            <div class="input-row" style="display: flex; gap: var(--spacing-sm); align-items: stretch; flex-wrap: wrap;">
+                <form onsubmit="return false;" style="flex: 1; min-width: 200px;">
                     <input type="text" id="equation" placeholder="8+3-4=0" autocomplete="off" style="height: 42px;">
                 </form>
-                <div id="equation-preview" style="flex: 1; padding: var(--spacing-sm); background: var(--bg-tertiary); border: 1px solid var(--border-color); min-height: 42px; display: flex; align-items: center; justify-content: center;"></div>
+                <div id="equation-preview" style="flex: 1; min-width: 200px; padding: var(--spacing-sm); background: var(--bg-tertiary); border: 1px solid var(--border-color); min-height: 42px; display: flex; align-items: center; justify-content: center;"></div>
+                <button id="solve-btn" class="btn btn-primary" style="height: 42px; padding: 0 var(--spacing-lg); font-size: 0.9rem; white-space: nowrap;">▶ SOLVE</button>
+            </div>
+            <!-- 高级选项：搜索上限 + 过滤±解 -->
+            <div style="margin-top: var(--spacing-xs); display: flex; gap: var(--spacing-sm); align-items: center; flex-wrap: wrap;">
+                <label class="search-limit-label" style="font-size: 0.78rem; font-family: 'matchstick', 'Courier New', monospace; opacity: 0.75; white-space: nowrap;">🔍 搜索上限:</label>
+                <input type="number" id="max-mutations" min="1000" max="500000" step="1000" value="10000"
+                    style="width: 90px; height: 28px; text-align: center;">
+                <button id="filter-signed-btn" class="btn btn-secondary" style="font-size: 0.78rem; padding: 3px 10px; height: 28px; min-height: unset;">⚡ 过滤±解</button>
             </div>
         </div>
 

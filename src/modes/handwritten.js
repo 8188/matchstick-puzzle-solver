@@ -183,6 +183,39 @@ export class HandwrittenMode extends RuleBuilder {
         this.transform2('2', '(9)H');
         this.add2('2', '8');
 
+        // ========== Move 1 & Remove 1 规则（净-1）==========
+        // 源: hand-written-rules.md 第"Move 1 & Remove 1"列
+        this.addRemoveTrans('*', '-');
+        this.addRemoveTrans('*', '(1)H');
+        this.addRemoveTrans('=', '(1)H');
+        this.addRemoveTrans('/', '-');
+        this.addRemoveTrans('/', '(1)H');
+        this.addRemoveTrans('(4)H', '(7)H');
+        this.addRemoveTrans('(4)H', '(11)H');
+        this.addRemoveTrans('(4)H', '/');
+        this.addRemoveTrans('(4)H', '=');
+        this.addRemoveTrans('(4)H', '*');
+        this.addRemoveTrans('(11)H', '-');
+        this.addRemoveTrans('5', '(0)H');
+        this.addRemoveTrans('3', '(0)H');
+        this.addRemoveTrans('2', '(0)H');
+
+        // ========== Move 1 & Add 1 规则（净+1）==========
+        // 源: hand-written-rules.md 第"Move 1 & Add 1"列
+        this.addAddTrans('(1)H', '*');
+        this.addAddTrans('(1)H', '=');
+        this.addAddTrans('(1)H', '/');
+        this.addAddTrans('-', '*');
+        this.addAddTrans('-', '/');
+        this.addAddTrans('-', '(11)H');
+        this.addAddTrans('*', '(4)H');
+        this.addAddTrans('=', '(4)H');
+        this.addAddTrans('/', '(4)H');
+        this.addAddTrans('(7)H', '(4)H');
+        this.addAddTrans('(0)H', '5');
+        this.addAddTrans('(0)H', '2');
+        this.addAddTrans('(0)H', '3');
+
         return this;
     }
 

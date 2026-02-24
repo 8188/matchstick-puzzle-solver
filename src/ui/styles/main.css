@@ -3,22 +3,22 @@
  */
 
 :root {
-    /* 复古主题 - 绿色显示器 */
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #111111;
-    --bg-tertiary: #1a1a1a;
-    --text-primary: #00ff00;
-    --text-secondary: #00aa00;
-    --accent-primary: #00ff00;
-    --accent-secondary: #00dd00;
-    --border-color: #00ff00;
-    --shadow: rgba(0, 255, 0, 0.3);
-    --shadow-hover: rgba(0, 255, 0, 0.5);
+    /* 白天模式 - 亮色背景 */
+    --bg-primary: #f0f4f8;
+    --bg-secondary: #e2e8f0;
+    --bg-tertiary: #cbd5e1;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --accent-primary: #0ea5e9;
+    --accent-secondary: #0284c7;
+    --border-color: #94a3b8;
+    --shadow: rgba(14, 165, 233, 0.2);
+    --shadow-hover: rgba(14, 165, 233, 0.35);
 
     /* 成功/错误颜色 */
-    --success: #00ff00;
-    --error: #ff0000;
-    --warning: #ffff00;
+    --success: #16a34a;
+    --error: #dc2626;
+    --warning: #d97706;
 
     /* 间距 */
     --spacing-xs: 0.25rem;
@@ -38,19 +38,20 @@
     --transition-slow: 300ms ease;
 }
 
-/* 深色主题 - 亮黄色显示器 */
+/* 夜晚模式 - Megaman 蓝 */
 [data-theme="dark"] {
-    --bg-primary: #1a1a0a;
-    --bg-secondary: #252520;
-    --bg-tertiary: #303028;
-    --text-primary: #ffff33;
-    --text-secondary: #e6e633;
-    --accent-primary: #ffff00;
-    --accent-secondary: #ffff66;
-    --border-color: #ffff33;
-    --shadow: rgba(255, 255, 51, 0.4);
-    --shadow-hover: rgba(255, 255, 51, 0.6);
-    --success: #ffff00;
+    --bg-primary: #0a1628;
+    --bg-secondary: #0f1e38;
+    --bg-tertiary: #162848;
+    --text-primary: #00c8ff;
+    --text-secondary: #0099cc;
+    --accent-primary: #00c8ff;
+    --accent-secondary: #00aadd;
+    --border-color: #00c8ff;
+    --shadow: rgba(0, 200, 255, 0.4);
+    --shadow-hover: rgba(0, 200, 255, 0.6);
+    --success: #00ffaa;
+    --error: #ff4455;
     --warning: #ffaa00;
 }
 
@@ -69,21 +70,24 @@
 
 body {
     font-family: 'Courier New', 'Courier', monospace;
-    -webkit-font-smoothing: none;
-    -moz-osx-font-smoothing: unset;
+    -webkit-font-smoothing: antialiased;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.4;
     transition: background-color var(--transition-normal),
         color var(--transition-normal);
-    text-shadow: 0 0 2px var(--text-primary);
+}
+
+/* 局层效果 - 仅在夜晚模式显示扫描线 */
+[data-theme="dark"] body {
+    text-shadow: 0 0 4px var(--text-primary);
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
 }
 
-/* 像素效果 - 扫描线 */
-body::before {
+/* 扫描线（仅在夜晚模式显示） */
+[data-theme="dark"] body::before {
     content: "";
     position: fixed;
     top: 0;
@@ -92,8 +96,8 @@ body::before {
     height: 100%;
     background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.15),
-        rgba(0, 0, 0, 0.15) 1px,
+        rgba(0, 0, 0, 0.12),
+        rgba(0, 0, 0, 0.12) 1px,
         transparent 1px,
         transparent 2px
     );
@@ -114,14 +118,22 @@ body::before {
     border: 2px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: var(--spacing-md);
-    box-shadow: 0 0 10px var(--shadow), inset 0 0 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 10px var(--shadow);
     transition: all var(--transition-normal);
     margin-bottom: var(--spacing-md);
 }
 
+[data-theme="dark"] .card {
+    box-shadow: 0 0 10px var(--shadow), inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
 .card:hover {
-    box-shadow: 0 0 20px var(--shadow-hover), inset 0 0 20px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 20px var(--shadow-hover);
     transform: translateY(-2px);
+}
+
+[data-theme="dark"] .card:hover {
+    box-shadow: 0 0 20px var(--shadow-hover), inset 0 0 20px rgba(0, 0, 0, 0.4);
 }
 
 /* 按钮 */
@@ -200,6 +212,29 @@ input[type="text"]:focus {
 input[type="text"]::placeholder {
     color: var(--text-secondary);
     opacity: 0.5;
+}
+
+/* 数字输入框 - 使用 digital-7 字体，隐藏增减按钮 */
+input[type="number"] {
+    -moz-appearance: textfield;
+    font-family: 'matchstick', monospace;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    box-shadow: inset 0 0 6px rgba(0,0,0,0.2);
+}
+input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px var(--shadow-hover), inset 0 0 6px rgba(0,0,0,0.2);
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* 火柴棒显示 */
@@ -310,18 +345,67 @@ tbody tr:hover {
 /* 响应式 */
 @media (max-width: 768px) {
     .container {
-        padding: var(--spacing-md);
+        padding: var(--spacing-sm);
     }
 
     h1 {
-        font-size: 2rem;
+        font-size: 1.2rem;
     }
 
     h2 {
-        font-size: 1.5rem;
+        font-size: 1rem;
+    }
+
+    h3 {
+        font-size: 0.85rem;
     }
 
     .matchsticks {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
+    }
+
+    /* 输入框字体调小 */
+    input[type="text"] {
+        font-size: 0.95rem;
+        padding: 6px 8px;
+    }
+
+    input[type="number"] {
+        font-size: 0.9rem;
+        padding: 4px 6px;
+    }
+
+    /* 按钮调小 */
+    .btn {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    /* 卡片内边距 */
+    .card {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    /* 规则页面头部优化 */
+    header {
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+
+    /* 模式选择器和移动数选择器堆叠 */
+    #mode-selector {
+        flex-wrap: wrap;
+    }
+
+    /* 表格字体调小 */
+    table {
+        font-size: 0.75rem;
+    }
+
+    th, td {
+        padding: 4px 6px;
     }
 }

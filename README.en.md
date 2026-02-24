@@ -3,7 +3,7 @@
 
 [🇨🇳 中文](./README.md) | [🇬🇧 English](#)
 
-**Version: v0.3**
+**Version: v0.4**
 
 ---
 
@@ -15,9 +15,13 @@ A modern matchstick equation solver supporting both standard and handwritten mod
 - 🎨 **Dual Modes**: Supports standard and handwritten modes
 - 🔀 **Move Selection**: Supports solving by moving 1 or 2 matchsticks
 - 🧮 **Advanced Syntax**: Supports signed numbers (=+, =-, leading +/-) and leading zero filtering
+- 🔧 **Advanced Configuration**: 
+  - **Search Limit**: Set maximum search iterations (default 10000, range 1000-500000), affects solving speed and completeness
+  - **Filter Signed Solutions**: Optionally filter out equations with signs (like `+5-3=2` or `5-3=+2`)
+- 📊 **Detailed Display**: Shows solving method, descriptions, and computation time
 - 🖼️ **SVG Display**: Beautiful vector matchstick display with realistic heads
 - 🌍 **Bilingual**: Chinese/English interface switching
-- 🌓 **Theme Toggle**: Light/dark themes
+- 🌓 **Theme Toggle**: Light/dark themes, synchronized across main and rules pages
 - 🎵 **Background Music**: Play/stop background music (local resource)
 
 ## Quick Start
@@ -37,8 +41,8 @@ matchstick-puzzle-solver/
 │   └── utils/             # Utility modules
 ├── assets/                # Assets
 ├── doc/                   # Documentation
-├── index.html             # Interface
-└── test.js                # Test script
+├── test/                  # Test files
+└── index.html             # Interface
 ```
 
 ## Documentation
@@ -49,7 +53,9 @@ matchstick-puzzle-solver/
 ## Testing
 
 ```bash
-node test.js
+node test/test-solver.js
+# or use npm
+npm test
 ```
 
 ## 📋 TODO List

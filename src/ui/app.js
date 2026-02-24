@@ -19,9 +19,11 @@ export class App {
         this.solver = null;
         this.currentMode = 'standard';
         this.currentMoveCount = 1; // 移动火柴的数量
-        this.currentTheme = 'light';
+        this.currentTheme = 'dark';
         this.useSVGDisplay = false; // SVG显示开关
         this.i18n = new I18n(); // 国际化支持
+        this.maxMutations = 10000; // 搜索上限（默认1万）
+        this.filterSigned = false; // 是否过滤带正负号的解
         this.debugMode = new URLSearchParams(window.location.search).get('debug') === '1'; // 调试模式
         this.solveTimer = null;
 
@@ -55,6 +57,13 @@ export class App {
     init() {
         // 加载保存的语言设置
         this.i18n.loadSavedLanguage();
+        
+        // 加载保存的主题设置
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+            this.currentTheme = savedTheme;
+            document.documentElement.setAttribute('data-theme', this.currentTheme);
+        }
         
         // 注册所有模式
         this.registerModes();
@@ -122,6 +131,22 @@ export class App {
                     e.target.setSelectionRange(cursorPos, cursorPos);
                 }
                 this.updateEquationPreview(value);
+                // 不再自动求解，用户需点击 Solve 按钮
+            });
+
+            // 按 Enter 键触发求解
+            equationInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.scheduleSolve(equationInput.value);
+                }
+            });
+        }
+
+        // Solve 按钮
+        const solveBtn = document.querySelector('#solve-btn');
+        if (solveBtn) {
+            solveBtn.addEventListener('click', () => {
+                const value = document.querySelector('#equation')?.value || '';
                 this.scheduleSolve(value);
             });
         }
@@ -152,6 +177,9 @@ export class App {
 
         // 规则页面按钮
         this.setupRulesButton();
+
+        // 高级选项（搜索上限、过滤开关）
+        this.setupAdvancedOptions();
 
         // 规则表（只在rules.html页面显示）
         if (document.querySelector('tbody')) {
@@ -190,12 +218,6 @@ export class App {
     setMoveCount(count) {
         this.currentMoveCount = count;
         this.solver = new MatchstickSolver(this.ruleManager, count);
-        
-        // 重新求解当前等式
-        const equationInput = document.querySelector('#equation');
-        if (equationInput && equationInput.value) {
-            this.scheduleSolve(equationInput.value);
-        }
 
         // 规则页需要更新表头与内容
         if (document.querySelector('tbody')) {
@@ -213,6 +235,46 @@ export class App {
             rulesBtn.addEventListener('click', () => {
                 window.location.href = 'rules.html';
             });
+        }
+    }
+
+    /**
+     * 设置高级选项（搜索上限、过滤开关）
+     */
+    setupAdvancedOptions() {
+        // 搜索上限输入框
+        const maxInput = document.querySelector('#max-mutations');
+        if (maxInput) {
+            maxInput.value = this.maxMutations;
+            maxInput.addEventListener('change', (e) => {
+                this.maxMutations = Math.max(1000, Math.min(500000, parseInt(e.target.value) || 10000));
+                e.target.value = this.maxMutations;
+            });
+        }
+
+        // 过滤±解按钮
+        const filterBtn = document.querySelector('#filter-signed-btn');
+        if (filterBtn) {
+            this.updateFilterSignedBtn();
+            filterBtn.addEventListener('click', () => {
+                this.filterSigned = !this.filterSigned;
+                this.updateFilterSignedBtn();
+            });
+        }
+    }
+
+    /**
+     * 同步过滤按钮的外观和文字
+     */
+    updateFilterSignedBtn() {
+        const filterBtn = document.querySelector('#filter-signed-btn');
+        if (!filterBtn) return;
+        if (this.filterSigned) {
+            filterBtn.textContent = this.i18n.t('filterSignedBtnOn');
+            filterBtn.className = 'btn btn-primary';
+        } else {
+            filterBtn.textContent = this.i18n.t('filterSignedBtn');
+            filterBtn.className = 'btn btn-secondary';
         }
     }
 
@@ -348,14 +410,13 @@ export class App {
     }
 
     /**
-     * 加载示例
+     * 加载示例（只将等式填入输入框并更新预览，需点击 Solve 才计算）
      */
-    async loadSample(equation) {
+    loadSample(equation) {
         const equationInput = document.querySelector("#equation");
         if (equationInput) {
             equationInput.value = equation;
             this.updateEquationPreview(equation);
-            await this.solve(equation);
         }
     }
 
@@ -376,17 +437,23 @@ export class App {
         
         const isOK = Evaluator.evaluate(equation);
         
-        // 分块处理：对于长表达式，限制最大变换数
-        // 手写模式的长表达式需要更大的搜索空间
-        const maxMutations = equation.length > 20 ? 15000 : (equation.length > 15 ? 10000 : 10000);
-        const result = this.solver.solve(equation, { maxMutations });
-        
+        // 使用用户设定的搜索上限
+        const result = this.solver.solve(equation, { maxMutations: this.maxMutations });
+
+        // 过滤带正负号的解（如果开关打开）
+        if (this.filterSigned && result.solutions) {
+            result.solutions = result.solutions.filter(sol => {
+                const s = sol.str.replace(/ /g, '');
+                return !/^[+\-]/.test(s) && !/=[+\-]/.test(s);
+            });
+        }
+
         const endTime = performance.now();
         const duration = (endTime - startTime).toFixed(2);
-        
+
         if (this.debugMode) {
             console.log(`🔍 求解耗时: ${duration}ms, 找到 ${result.solutions.length} 个解`);
-            console.log('前5个解:', result.solutions.slice(0, 5));
+            console.log('前5个解:', result.solutions.slice(0, 5).map(s => s.str));
             console.log('总变换数:', result.totalMutations);
         }
         
@@ -402,17 +469,9 @@ export class App {
 
         statusElement.innerHTML = '';
 
-        // 使用ResultList组件渲染结果
-        const resultsDisplay = this.resultList.renderGroupedResults(result, isOK);
+        // 使用ResultList组件渲染结果（始终传入计算时间）
+        const resultsDisplay = this.resultList.renderGroupedResults(result, isOK, duration);
         statusElement.appendChild(resultsDisplay);
-        
-        // 调试模式下显示性能信息
-        if (this.debugMode && duration !== null) {
-            const perfInfo = document.createElement('p');
-            perfInfo.style.cssText = 'text-align: center; color: var(--text-secondary); font-size: 0.75rem; margin-top: var(--spacing-sm); opacity: 0.6;';
-            perfInfo.textContent = `⚡ ${duration}ms`;
-            statusElement.appendChild(perfInfo);
-        }
     }
 
     /**
@@ -423,11 +482,14 @@ export class App {
         if (!tbody) return;
 
         tbody.innerHTML = '';
-        const { adds, subs, trans, adds2, subs2, trans2 } = this.ruleManager.getRules();
+        const { adds, subs, trans, adds2, subs2, trans2, moveSub, moveAdd } = this.ruleManager.getRules();
         const legals = this.ruleManager.getLegals();
         const useTrans = this.currentMoveCount === 1 ? trans : trans2;
         const useAdds = this.currentMoveCount === 1 ? adds : adds2;
         const useSubs = this.currentMoveCount === 1 ? subs : subs2;
+        // Move 1 & Remove 1 / Move 1 & Add 1 显示在2根模式页
+        const useMoveSub = this.currentMoveCount === 2 ? (moveSub || {}) : {};
+        const useMoveAdd = this.currentMoveCount === 2 ? (moveAdd || {}) : {};
 
         // 火柴数量映射
         const matchCounts = {
@@ -481,11 +543,23 @@ export class App {
             const subsCell = document.createElement('td');
             this.renderRuleTableCharList(subsCell, useSubs[char] || []);
 
+            // Move 1 & Remove 1 列
+            const moveSubCell = document.createElement('td');
+            this.renderRuleTableCharList(moveSubCell, useMoveSub[char] || []);
+
+            // Move 1 & Add 1 列
+            const moveAddCell = document.createElement('td');
+            this.renderRuleTableCharList(moveAddCell, useMoveAdd[char] || []);
+
             row.appendChild(charCell);
             row.appendChild(countCell);
             row.appendChild(transCell);
             row.appendChild(addsCell);
             row.appendChild(subsCell);
+            if (this.currentMoveCount === 2) {
+                row.appendChild(moveSubCell);
+                row.appendChild(moveAddCell);
+            }
 
             tbody.appendChild(row);
         });
@@ -610,9 +684,6 @@ export class App {
             }
         });
 
-        // 重新渲染示例列表（更新字体）
-        this.renderSamples();
-
         // 重新渲染字符预览
         this.renderCharPreview();
 
@@ -622,10 +693,9 @@ export class App {
             this.renderRulesTable();
         }
 
-        // 重新求解当前等式并更新预览
+        // 更新等式预览（但不自动求解）
         const equationInput = document.querySelector("#equation");
         if (equationInput && equationInput.value) {
-            this.solve(equationInput.value);
             this.updateEquationPreview(equationInput.value);
         }
     }
@@ -637,10 +707,15 @@ export class App {
         const themeToggle = document.querySelector("#theme-toggle");
         if (!themeToggle) return;
 
+        // 初始化按钮状态（当前默认为dark模式）
+        themeToggle.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
+
         themeToggle.addEventListener('click', () => {
             this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', this.currentTheme);
             themeToggle.textContent = this.currentTheme === 'light' ? '🌙' : '☀️';
+            // 保存到 localStorage 以便规则页面同步
+            localStorage.setItem('theme', this.currentTheme);
         });
     }
 
@@ -758,6 +833,19 @@ export class App {
             rulesBtn.textContent = this.i18n.getCurrentLanguage() === 'zh' ? '⚙ 规则' : '⚙ RULES';
         }
         
+        // 更新Solve按钮文字
+        const solveBtn = document.querySelector('#solve-btn');
+        if (solveBtn) {
+            solveBtn.textContent = this.i18n.t('solveBtn');
+        }
+
+        // 更新搜索上限标签
+        const maxLabel = document.querySelector('.search-limit-label');
+        if (maxLabel) maxLabel.textContent = this.i18n.t('maxSearchLabel');
+
+        // 更新过滤按钮
+        this.updateFilterSignedBtn();
+        
         // 更新输入框placeholder
         const input = document.querySelector('#equation');
         if (input) {
@@ -821,6 +909,10 @@ export class App {
             const selfTransformText = this.currentMoveCount === 1 ? this.i18n.t('selfTransform') : this.i18n.t('selfTransform2');
             const addText = this.currentMoveCount === 1 ? this.i18n.t('addOne') : this.i18n.t('addTwo');
             const removeText = this.currentMoveCount === 1 ? this.i18n.t('removeOne') : this.i18n.t('removeTwo');
+            // Move 1 & Remove 1 / Move 1 & Add 1 列在移动2根时显示
+            const moveSubExtra = this.currentMoveCount === 2
+                ? `<th>${this.i18n.t('moveSubCol')}</th><th>${this.i18n.t('moveAddCol')}</th>`
+                : '';
             thead.innerHTML = `
                 <tr>
                     <th>${this.i18n.t('character')}</th>
@@ -828,6 +920,7 @@ export class App {
                     <th>${selfTransformText}</th>
                     <th>${addText}</th>
                     <th>${removeText}</th>
+                    ${moveSubExtra}
                 </tr>
             `;
         }

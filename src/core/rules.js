@@ -67,6 +67,8 @@ export class RuleBuilder {
         this.adds2 = {}; // 添加两根火柴
         this.subs2 = {}; // 移除两根火柴
         this.trans2 = {}; // 移动两根火柴
+        this.moveSub = {}; // "Move 1 & Remove 1"：移动一根（内部）+ 移除一根（净-1）
+        this.moveAdd = {}; // "Move 1 & Add 1"：移动一根（内部）+ 添加一根（净+1）
         // 标准字符 + 11 + 手写字符(带()H标记)
         this.legals = "0123456789+-*/= ".split("").concat(['11', '(0)H', '(1)H', '(4)H', '(6)H', '(7)H', '(9)H', '(11)H']);
 
@@ -78,6 +80,8 @@ export class RuleBuilder {
             this.adds2[c] = new Set();
             this.subs2[c] = new Set();
             this.trans2[c] = new Set();
+            this.moveSub[c] = new Set();
+            this.moveAdd[c] = new Set();
         });
     }
 
@@ -117,6 +121,28 @@ export class RuleBuilder {
     }
 
     /**
+     * 定义"移动一根+移除一根"的转换规则（净-1根，移出一根给其他位置）
+     * @param {string} c1 - 源字符
+     * @param {string} c2 - 目标字符
+     */
+    addRemoveTrans(c1, c2) {
+        if (!this.moveSub[c1]) this.moveSub[c1] = new Set();
+        this.moveSub[c1].add(c2);
+        return this;
+    }
+
+    /**
+     * 定义"移动一根+添加一根"的转换规则（净+1根，从其他位置接收一根）
+     * @param {string} c1 - 源字符
+     * @param {string} c2 - 目标字符
+     */
+    addAddTrans(c1, c2) {
+        if (!this.moveAdd[c1]) this.moveAdd[c1] = new Set();
+        this.moveAdd[c1].add(c2);
+        return this;
+    }
+
+    /**
      * 定义移动两根火柴的转换规则（不改变火柴总数）
      * @param {string} c1 - 字符1
      * @param {string} c2 - 字符2
@@ -151,7 +177,9 @@ export class RuleBuilder {
             trans: this.trans,
             adds2: this.adds2,
             subs2: this.subs2,
-            trans2: this.trans2
+            trans2: this.trans2,
+            moveSub: this.moveSub,
+            moveAdd: this.moveAdd
         };
     }
 }
