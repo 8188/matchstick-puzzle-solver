@@ -216,6 +216,7 @@ export class MatchstickSolver {
                 ...this.moveSubThenAdd(wrappedArr).map(a => ({ arr: a, method: 'moveSubThenAdd' })),
                 ...this.moveAddThenSub(wrappedArr).map(a => ({ arr: a, method: 'moveAddThenSub' })),
                 ...this.removeRemoveAdd2(wrappedArr).map(a => ({ arr: a, method: 'removeRemoveAdd2' })),
+                ...this.removeTwoAddTwo(wrappedArr).map(a => ({ arr: a, method: 'removeTwoAddTwo' })),
                 ...this.combinedMoves(wrappedArr).map(a => ({ arr: a, method: 'combinedMoves' })),
                 ...this.transformTwice(wrappedArr).map(a => ({ arr: a, method: 'transformTwice' })),
                 ...this.transformAndMove(wrappedArr).map(a => ({ arr: a, method: 'transformAndMove' })),
@@ -310,13 +311,16 @@ export class MatchstickSolver {
         // 5. 移除一根 + 移除一根 + 添加两根（subs at i + subs at j + adds2 at k，净0）
         results.push(...this.removeRemoveAdd2(wrappedArr));
 
-        // 6. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
+        // 6. 移除两根 + 添加一根 + 添加一根（subs2 at i + adds at j + adds at k，净0）
+        results.push(...this.removeTwoAddTwo(wrappedArr));
+
+        // 7. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
         results.push(...this.combinedMoves(wrappedArr));
         
-        // 7. 转换一根 + 转换一根（如 2→3 + (6)H→(9)H）
+        // 8. 转换一根 + 转换一根（如 2→3 + (6)H→(9)H）
         results.push(...this.transformTwice(wrappedArr));
         
-        // 8. 转换一根 + 移除一根 + 添加一根（顺序：transform → remove → add）
+        // 9. 转换一根 + 移除一根 + 添加一根（顺序：transform → remove → add）
         results.push(...this.transformAndMove(wrappedArr));
         
         return results;
@@ -816,6 +820,92 @@ export class MatchstickSolver {
                         });
                     });
                 });
+            });
+        });
+
+        return results;
+    }
+
+    /**
+     * 移除两根 at 位置i + 添加一根 at 位置j + 添加一根 at 位置k
+     * 例如：4→1（-2）+ 3→9（+1）+ 空格→-（+1）= 净0
+     * 用例：94-35=48 → 91 - 95 = 4 - 8
+     * @param {Array<string>} arr - 字符数组
+     * @returns {Array<Array<string>>}
+     */
+    removeTwoAddTwo(arr) {
+        const results = [];
+        const { subs2, adds } = this.ruleManager.getRules();
+        if (!subs2 || !adds) return results;
+
+        arr.forEach((c, i) => {
+            const subs2Set = subs2[c];
+            if (!subs2Set || subs2Set.size === 0) return;
+
+            [...subs2Set].forEach(r1 => {
+                const arr1 = this.replace(arr, i, r1);
+
+                // 在位置j添加一根火柴
+                arr1.forEach((d, j) => {
+                    if (j === i) return;
+                    const addsSet = adds[d];
+                    if (!addsSet || addsSet.size === 0) return;
+
+                    [...addsSet].forEach(r2 => {
+                        const arr2 = this.replace(arr1, j, r2);
+
+                        // 在位置k添加一根火柴（现有位置）
+                        arr2.forEach((e, k) => {
+                            if (k === i || k === j) return;
+                            const addsSet2 = adds[e];
+                            if (!addsSet2 || addsSet2.size === 0) return;
+                            [...addsSet2].forEach(r3 => {
+                                results.push(this.replace(arr2, k, r3));
+                            });
+                        });
+
+                        // 从空格位置插入新字符（第二次添加）
+                        const spaceAdds = adds[' '];
+                        if (spaceAdds) {
+                            for (let insertIdx = 0; insertIdx <= arr2.length; insertIdx++) {
+                                [...spaceAdds].forEach(newChar => {
+                                    const arr3 = [...arr2];
+                                    arr3.splice(insertIdx, 0, newChar);
+                                    results.push(arr3);
+                                });
+                            }
+                        }
+                    });
+                });
+
+                // 在位置j从空格插入新字符（第一次添加）
+                const spaceAdds = adds[' '];
+                if (spaceAdds) {
+                    for (let insertIdx = 0; insertIdx <= arr1.length; insertIdx++) {
+                        [...spaceAdds].forEach(newChar1 => {
+                            const arr2 = [...arr1];
+                            arr2.splice(insertIdx, 0, newChar1);
+
+                            // 在位置k添加一根火柴（现有位置）
+                            arr2.forEach((e, k) => {
+                                const addsSet2 = adds[e];
+                                if (!addsSet2 || addsSet2.size === 0) return;
+                                [...addsSet2].forEach(r3 => {
+                                    results.push(this.replace(arr2, k, r3));
+                                });
+                            });
+
+                            // 从空格位置再次插入新字符（第二次添加）
+                            for (let insertIdx2 = 0; insertIdx2 <= arr2.length; insertIdx2++) {
+                                [...spaceAdds].forEach(newChar2 => {
+                                    const arr3 = [...arr2];
+                                    arr3.splice(insertIdx2, 0, newChar2);
+                                    results.push(arr3);
+                                });
+                            }
+                        });
+                    }
+                }
             });
         });
 

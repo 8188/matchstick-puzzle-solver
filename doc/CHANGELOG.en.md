@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Graph database optimization: Use graph structures for faster large-scale search
 - Custom rules feature: Allow users to define custom matchstick transformation rules
 
-## [v0.4] - 2026-02-24
+## [v0.4] - 2026-03-02
 
 ### Added
+- **Move-2 Algorithm Enhancement**:
+  - Added `removeTwoAddTwo` method: remove 2 matchsticks + add 1 matchstick + add 1 matchstick
+  - Solves problems like `94-35=48 → 91 - 95 = 4 - 8` (remove 2 from 4 to get 1, add 1 to 3 to get 9, add 1 to space to get -)
+  - Completed all possible transformation combinations for move-2 mode
 - **Test Refactoring**:
   - Moved test files to `test/` folder, renamed to `test-solver.js`
   - Test data extracted to `test/cases.json` for easier test case additions

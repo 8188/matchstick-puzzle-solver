@@ -35,6 +35,7 @@ __pycache__/
 *.temp
 *.xlsx
 *plan.md
+output.txt
 
 # Editor backups
 *.bak

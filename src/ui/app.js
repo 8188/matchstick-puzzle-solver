@@ -788,11 +788,8 @@ export class App {
             // 更新规则页面（如果当前在rules.html）
             this.updateRulesPageText();
 
-            // 重新渲染当前结果
-            const equationInput = document.querySelector("#equation");
-            if (equationInput && equationInput.value) {
-                this.solve(equationInput.value);
-            }
+            // 不自动重新求解，用户需要手动点击求解按钮
+            // 已移除：this.solve(equationInput.value);
         });
 
         // 初始加载时同步规则页文本（若存在）

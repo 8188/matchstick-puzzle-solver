@@ -196,6 +196,7 @@ export class ResultList {
             moveSubThenAdd: this.i18n ? this.i18n.t('desc_moveSubThenAdd') : '移除1根+移动1根，再添加1根',
             moveAddThenSub: this.i18n ? this.i18n.t('desc_moveAddThenSub') : '添加1根+移动1根，再移除1根',
             removeRemoveAdd2: this.i18n ? this.i18n.t('desc_removeRemoveAdd2') : '移除2根，再添加2根到同一位置',
+            removeTwoAddTwo: this.i18n ? this.i18n.t('desc_removeTwoAddTwo') : '移除2根，再分别添加1根到两个位置',
             combinedMoves: this.i18n ? this.i18n.t('desc_combinedMoves') : '两次单根移动操作',
             transformTwice: this.i18n ? this.i18n.t('desc_transformTwice') : '两次单根位置变换',
             transformAndMove: this.i18n ? this.i18n.t('desc_transformAndMove') : '变换1根+移除1根+添加1根',
