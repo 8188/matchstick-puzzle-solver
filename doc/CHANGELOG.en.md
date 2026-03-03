@@ -8,8 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Graph database optimization: Use graph structures for faster large-scale search
 - Custom rules feature: Allow users to define custom matchstick transformation rules
+- Puzzle generator: Automatically generate matchstick puzzles of varying difficulty
+
+## [v0.5] - 2026-03-03
+
+### Performance
+- **Deep solver refactor** (`solver.js`): test suite execution time reduced from **130 seconds** to **700 ms**, approximately **180× faster**:
+  - **Rule cache**: Added `_buildRuleCache()` which, at the start of each `solve()` call, expands all rule `Set`s into `Map<string, string[]>` once, eliminating repeated `getRules()` calls and `[...set]` spread overhead inside every transformation method
+  - **Lazy generation (Generators)**: All transformation methods (`transforms`, `moves`, `combinedMoves`, `transformTwice`, etc. — 9 strategies total) rewritten as `function*` generators that `yield` candidates on demand instead of building full result arrays upfront
+  - **Validate-as-you-go**: The main loop in `solve()` runs `isQuickValid` + `Evaluator.evaluate` immediately after each candidate is yielded; invalid candidates are skipped without waiting for full generation to complete
+  - **Unified strategy interface**: Added `_strategiesSingle` / `_strategiesDouble` that return `{candidates, method}` lists iterated uniformly by `solve()`; removed the now-redundant `mutateTagged`, `mutate`, `mutateSingle`, `mutateDouble`, and `filterOutSingleMoveSolutions`
+
+### Notes
+- No `--no-cache` flag is needed: `_rc` is a local cache rebuilt fresh at the start of every `solve()` call, with no cross-call persistence — unlike the graph version which has a persistent `transformationCache`
+- All 32 test cases produce identical results to v0.4; only performance changes
 
 ## [v0.4] - 2026-03-02
 

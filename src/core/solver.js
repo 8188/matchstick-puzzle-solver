@@ -14,6 +14,39 @@ export class MatchstickSolver {
     constructor(ruleManager, moveCount = 1) {
         this.ruleManager = ruleManager;
         this.moveCount = moveCount;
+        // 规则缓存（每次 solve 调用前重建）
+        this._rc = null;
+    }
+
+    /**
+     * 将规则中的 Set 展开为 string[]，存入实例缓存，整次 solve 复用。
+     * 避免在每个变换方法内部重复调用 getRules() 和 [...set]。
+     */
+    _buildRuleCache() {
+        const { trans, subs, adds, trans2, subs2, adds2, moveSub, moveAdd } = this.ruleManager.getRules();
+
+        const toMap = (obj) => {
+            if (!obj) return new Map();
+            const m = new Map();
+            for (const [k, v] of Object.entries(obj)) {
+                m.set(k, v instanceof Set ? [...v] : Array.isArray(v) ? v : []);
+            }
+            return m;
+        };
+
+        this._rc = {
+            trans:    toMap(trans),
+            subs:     toMap(subs),
+            adds:     toMap(adds),
+            trans2:   toMap(trans2),
+            subs2:    toMap(subs2),
+            adds2:    toMap(adds2),
+            moveSub:  toMap(moveSub),
+            moveAdd:  toMap(moveAdd),
+            // 常用的空格可添加字符
+            spaceAdds:  adds  ? (adds[' ']  instanceof Set ? [...adds[' ']]  : (adds[' ']  || [])) : [],
+            spaceAdds2: adds2 ? (adds2[' '] instanceof Set ? [...adds2[' ']] : (adds2[' '] || [])) : [],
+        };
     }
 
     /**
@@ -24,65 +57,66 @@ export class MatchstickSolver {
      */
     solve(equation, options = {}) {
         const { maxMutations = 10000, onProgress = null } = options;
-        
+
+        // 重建规则缓存（支持运行时切换模式）
+        this._buildRuleCache();
+
         const normalize = (str) => str.replace(/ /g, '');
-        
-        // 获取所有可能的tokenize方式
+        const originalNormalized = normalize(equation);
+
+        // 获取所有可能的 tokenize 方式
         const tokenizeVariants = this.getAllTokenizeVariants(equation);
-        
-        // 对每种tokenize方式生成带方法标记的变换（带剪枝）
-        const allMutations = [];
-        const methodMap = new Map(); // normalized str -> first method that found it
-        
-        for (const arr of tokenizeVariants) {
-            const tagged = this.mutateTagged(arr);
-            for (const { arr: mutArr, method } of tagged) {
-                if (allMutations.length >= maxMutations) break;
-                allMutations.push(mutArr);
-                const key = normalize(mutArr.join(''));
-                if (!methodMap.has(key)) {
-                    methodMap.set(key, method);
+
+        // 边生成边验证：直接在各策略方法中检测有效解，避免堆积全量候选
+        const solutionMap = new Map(); // normalized → {str, method}
+        let totalMutations = 0;
+
+        // 移动2根时，先收集单根解集用于排除
+        let singleMoveSet = null;
+        if (this.moveCount === 2) {
+            singleMoveSet = new Set();
+            for (const arr of tokenizeVariants) {
+                const wrapped = this.wrapWithSpaces(arr);
+                for (const candidate of this._generateSingle(wrapped, arr)) {
+                    if (this.isQuickValid(candidate) && Evaluator.evaluate(candidate)) {
+                        singleMoveSet.add(normalize(candidate.join('')));
+                    }
                 }
             }
-            if (allMutations.length >= maxMutations) break;
         }
 
-        // 快速过滤：先检查基本有效性，再进行完整验证
-        const validCandidates = allMutations.filter(arr => this.isQuickValid(arr));
-        
-        let solutions = validCandidates.filter(arr => Evaluator.evaluate(arr));
-        const others = validCandidates.filter(arr => !Evaluator.evaluate(arr));
+        for (const arr of tokenizeVariants) {
+            const wrapped = this.wrapWithSpaces(arr);
+            const strategies = this.moveCount === 1
+                ? this._strategiesSingle(wrapped, arr)
+                : this._strategiesDouble(wrapped, arr);
 
-        // 如果是移动2根模式，需要排除只移动1根就能达到的解
-        if (this.moveCount === 2) {
-            solutions = this.filterOutSingleMoveSolutions(tokenizeVariants[0], solutions);
+            for (const { candidates, method } of strategies) {
+                for (const candidate of candidates) {
+                    if (totalMutations >= maxMutations) break;
+                    totalMutations++;
+
+                    if (!this.isQuickValid(candidate)) continue;
+                    if (!Evaluator.evaluate(candidate)) continue;
+
+                    const key = normalize(candidate.join(''));
+                    if (key === originalNormalized) continue;
+                    if (singleMoveSet && singleMoveSet.has(key)) continue;
+                    if (!solutionMap.has(key)) {
+                        solutionMap.set(key, { str: candidate.join(''), method });
+                    }
+                }
+                if (totalMutations >= maxMutations) break;
+            }
+            if (totalMutations >= maxMutations) break;
         }
 
-        // 去重并规范化（移除空格差异）
-        const originalNormalized = normalize(equation);
-        
-        const solutionStrings = solutions.map(m => m.join(""));
-        const uniqueSolutions = solutionStrings.filter((str, idx, arr) => 
-            arr.findIndex(s => normalize(s) === normalize(str)) === idx
-        );
-        
-        // 过滤掉与原始输入相同的解，并附加方法信息
-        const finalSolutions = uniqueSolutions
-            .filter(str => normalize(str) !== originalNormalized)
-            .map(str => ({
-                str,
-                method: methodMap.get(normalize(str)) || 'unknown'
-            }));
-        
-        const otherStrings = others.map(m => m.join(""));
-        const uniqueOthers = otherStrings.filter((str, idx, arr) => 
-            arr.findIndex(s => normalize(s) === normalize(str)) === idx
-        );
+        const finalSolutions = [...solutionMap.values()];
 
         return {
             solutions: finalSolutions, // Array<{str: string, method: string}>
-            others: uniqueOthers,
-            totalMutations: allMutations.length
+            others: [],
+            totalMutations
         };
     }
 
@@ -161,755 +195,396 @@ export class MatchstickSolver {
     }
 
     /**
-     * 过滤掉只需移动1根火柴就能达到的解
-     * @param {Array<string>} originalArr - 原始数组
-     * @param {Array<Array<string>>} solutions - 所有解
-     * @returns {Array<Array<string>>}
-     */
-    filterOutSingleMoveSolutions(originalArr, solutions) {
-        // 获取移动1根火柴的所有可能解
-        const singleMoveMutations = this.mutateSingle(originalArr);
-        const singleMoveSolutions = singleMoveMutations.filter(arr => Evaluator.evaluate(arr));
-        
-        // 规范化函数（去除空格）
-        const normalize = (arr) => arr.join('').replace(/ /g, '');
-        const singleMoveSolutionSet = new Set(singleMoveSolutions.map(normalize));
-        
-        // 过滤掉在单根移动解集中的解，以及包含双等号、双运算符的无效解
-        return solutions.filter(solution => {
-            const normalizedSolution = normalize(solution);
-            
-            // 检查无效的连续运算符（使用与 isQuickValid 相同的逻辑）
-            // 允许=+和=-（用于等号后的正数/负数）
-            // 允许表达式开头的+和-
-            const withoutValidPatterns = normalizedSolution
-                .replace(/^[+\-]/, 'N')  // 移除开头的+/-
-                .replace(/=[+\-]/g, '=N');  // 移除=+和=-
-            
-            // 现在检查是否有任何连续运算符或双等号
-            if (/==|[+\-*/=][+\-*/=]/.test(withoutValidPatterns)) {
-                return false;
-            }
-            
-            return !singleMoveSolutionSet.has(normalizedSolution);
-        });
-    }
-
-    /**
-     * 生成所有可能的变换（带方法标记）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<{arr: Array<string>, method: string}>}
-     */
-    mutateTagged(arr) {
-        if (this.moveCount === 1) {
-            const wrappedArr = this.wrapWithSpaces(arr);
-            return [
-                ...this.transforms(wrappedArr).map(a => ({ arr: a, method: 'transform' })),
-                ...this.moves(wrappedArr).map(a => ({ arr: a, method: 'move' })),
-                ...this.multiCharTransforms(arr).map(a => ({ arr: a, method: 'multiChar' })),
-            ];
-        } else if (this.moveCount === 2) {
-            const wrappedArr = this.wrapWithSpaces(arr);
-            return [
-                ...this.transforms2(wrappedArr).map(a => ({ arr: a, method: 'transform2' })),
-                ...this.moves2(wrappedArr).map(a => ({ arr: a, method: 'move2' })),
-                ...this.moveSubThenAdd(wrappedArr).map(a => ({ arr: a, method: 'moveSubThenAdd' })),
-                ...this.moveAddThenSub(wrappedArr).map(a => ({ arr: a, method: 'moveAddThenSub' })),
-                ...this.removeRemoveAdd2(wrappedArr).map(a => ({ arr: a, method: 'removeRemoveAdd2' })),
-                ...this.removeTwoAddTwo(wrappedArr).map(a => ({ arr: a, method: 'removeTwoAddTwo' })),
-                ...this.combinedMoves(wrappedArr).map(a => ({ arr: a, method: 'combinedMoves' })),
-                ...this.transformTwice(wrappedArr).map(a => ({ arr: a, method: 'transformTwice' })),
-                ...this.transformAndMove(wrappedArr).map(a => ({ arr: a, method: 'transformAndMove' })),
-            ];
-        }
-        throw new Error(`Unsupported move count: ${this.moveCount}`);
-    }
-
-    /**
-     * 生成所有可能的变换
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    mutate(arr) {
-        if (this.moveCount === 1) {
-            return this.mutateSingle(arr);
-        } else if (this.moveCount === 2) {
-            return this.mutateDouble(arr);
-        }
-        throw new Error(`Unsupported move count: ${this.moveCount}`);
-    }
-
-    /**
      * 快速验证表达式是否可能有效（剪枝用）
      * @param {Array<string>} arr - 字符数组
      * @returns {boolean}
      */
     isQuickValid(arr) {
         const str = arr.join('');
-        
+
         // 必须包含等号
         if (!str.includes('=')) return false;
-        
-        // 检查无效的连续运算符
-        // 允许=+和=-（用于等号后的正数/负数）
-        // 允许表达式开头的+和-（如+2+3=5或-1+1=0）
-        
-        // 临时移除有效的=+和=-模式，以及开头的+/-
+
+        // 临时移除有效的=+/=-模式及开头的+/-，再检测连续运算符
         const withoutValidPatterns = str
-            .replace(/^[+\-]/, 'N')  // 移除开头的+/-
-            .replace(/=[+\-]/g, '=N');  // 移除=+和=-
-        
-        // 现在检查是否有任何连续运算符或双等号
-        if (/==|[+\-*/=][+\-*/=]/.test(withoutValidPatterns)) {
-            return false;
-        }
-        
-        // 不能以运算符结尾（除了等号）
+            .replace(/^[+\-]/, 'N')
+            .replace(/=[+\-]/g, '=N');
+
+        if (/==|[+\-*/=][+\-*/=]/.test(withoutValidPatterns)) return false;
+
+        // 不能以运算符结尾
         if (/[+\-*/]$/.test(str)) return false;
-        
+
         // 等号两边必须有内容
         const parts = str.split('=');
         if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
-        
+
         return true;
     }
 
     /**
-     * 移动一根火柴的所有变换
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
+     * 生成单根移动的所有候选（供内部使用）
+     * @param {Array<string>} wrapped - wrapWithSpaces 后的数组
+     * @param {Array<string>} raw    - 原始 token 数组（无空格包装）
+     * @returns {Iterable<Array<string>>}
      */
-    mutateSingle(arr) {
-        const wrappedArr = this.wrapWithSpaces(arr);
-        const singleCharMutations = this.transforms(wrappedArr).concat(this.moves(wrappedArr));
-        const multiCharMutations = this.multiCharTransforms(arr);
-
-        return [...singleCharMutations, ...multiCharMutations];
-    }
-
-    /**
-     * 移动两根火柴的所有变换（待实现）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    mutateDouble(arr) {
-        const wrappedArr = this.wrapWithSpaces(arr);
-        const results = [];
-        
-        // 1. 移动两根火柴（trans2）
-        results.push(...this.transforms2(wrappedArr));
-        
-        // 2. 移除两根 + 添加两根（moves2）
-        results.push(...this.moves2(wrappedArr));
-        
-        // 3. "移动一根&移除一根" + 添加一根（moveSub at i + adds at j，净0）
-        results.push(...this.moveSubThenAdd(wrappedArr));
-
-        // 4. "移动一根&添加一根" + 移除一根（moveAdd at i + subs at j，净0）
-        results.push(...this.moveAddThenSub(wrappedArr));
-
-        // 5. 移除一根 + 移除一根 + 添加两根（subs at i + subs at j + adds2 at k，净0）
-        results.push(...this.removeRemoveAdd2(wrappedArr));
-
-        // 6. 移除两根 + 添加一根 + 添加一根（subs2 at i + adds at j + adds at k，净0）
-        results.push(...this.removeTwoAddTwo(wrappedArr));
-
-        // 7. 移除一根 + 添加一根，再重复一次（组合两次单根移动）
-        results.push(...this.combinedMoves(wrappedArr));
-        
-        // 8. 转换一根 + 转换一根（如 2→3 + (6)H→(9)H）
-        results.push(...this.transformTwice(wrappedArr));
-        
-        // 9. 转换一根 + 移除一根 + 添加一根（顺序：transform → remove → add）
-        results.push(...this.transformAndMove(wrappedArr));
-        
-        return results;
-    }
-
-    /**
-     * 在数组前后及元素间添加空格
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<string>}
-     */
-    wrapWithSpaces(arr) {
-        const result = [' '];
-        for (const item of arr) {
-            result.push(item);
-            result.push(' ');
+    *_generateSingle(wrapped, raw) {
+        const rc = this._rc;
+        // transforms
+        for (let i = 0; i < wrapped.length; i++) {
+            const targets = rc.trans.get(wrapped[i]);
+            if (!targets) continue;
+            for (const t of targets) {
+                const a = [...wrapped]; a[i] = t; yield a;
+            }
         }
-        return result;
-    }
-
-    /**
-     * 处理多字符转换（如 "11" -> "4"）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    multiCharTransforms(arr) {
-        const results = [];
-        const { trans } = this.ruleManager.getRules();
-
-        // 查找 "11" 并替换为 "4"
-        for (let i = 0; i < arr.length - 1; i++) {
-            if (arr[i] === '1' && arr[i + 1] === '1') {
-                if (trans['11']) {
-                    for (const replacement of trans['11']) {
-                        const newArr = [...arr];
-                        newArr.splice(i, 2, replacement);
-                        results.push(newArr);
+        // moves (sub → add to existing / insert)
+        for (let i = 0; i < wrapped.length; i++) {
+            const subsArr = rc.subs.get(wrapped[i]);
+            if (!subsArr) continue;
+            for (const sub of subsArr) {
+                const a1 = [...wrapped]; a1[i] = sub;
+                // add to existing positions
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const addsArr = rc.adds.get(a1[j]);
+                    if (!addsArr) continue;
+                    for (const ad of addsArr) {
+                        const a2 = [...a1]; a2[j] = ad; yield a2;
+                    }
+                }
+                // insert at new positions
+                for (const sp of rc.spaceAdds) {
+                    for (let ins = 0; ins <= a1.length; ins++) {
+                        const a2 = [...a1]; a2.splice(ins, 0, sp); yield a2;
                     }
                 }
             }
         }
-
-        return results;
-    }
-
-    /**
-     * 替换数组中指定位置的字符
-     * @param {Array<string>} arr - 字符数组
-     * @param {number} index - 索引
-     * @param {string} replacement - 替换字符
-     * @returns {Array<string>}
-     */
-    replace(arr, index, replacement) {
-        const res = [...arr];
-        res[index] = replacement;
-        return res;
-    }
-
-    /**
-     * 移动一根火柴的位置变换（不改变火柴总数）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    transforms(arr) {
-        const { trans } = this.ruleManager.getRules();
-        return arr.flatMap((c, i) => {
-            const transformSet = trans[c];
-            if (!transformSet) return [];
-            return [...transformSet].map(re => this.replace(arr, i, re));
-        });
-    }
-
-    /**
-     * 移动火柴（先减后加）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    moves(arr) {
-        const { subs } = this.ruleManager.getRules();
-        const results = [];
-        
-        arr.forEach((c, i) => {
-            const subsSet = subs[c];
-            if (!subsSet) return;
-            
-            [...subsSet].forEach(re => {
-                // 添加到现有位置
-                results.push(...this.adding(this.replace(arr, i, re), i));
-                // 插入新位置
-                results.push(...this.inserting(this.replace(arr, i, re), i));
-            });
-        });
-        
-        return results;
-    }
-
-    /**
-     * 添加一根火柴到其他位置
-     * @param {Array<string>} arr - 字符数组
-     * @param {number} except - 排除的索引
-     * @returns {Array<Array<string>>}
-     */
-    adding(arr, except) {
-        const { adds } = this.ruleManager.getRules();
-        return arr.flatMap((c, i) => {
-            if (i === except) return [];
-            const addsSet = adds[c];
-            if (!addsSet) return [];
-            return [...addsSet].map(re => this.replace(arr, i, re));
-        });
-    }
-
-    /**
-     * 插入一根火柴到新位置（从空格派生新字符）
-     * @param {Array<string>} arr - 字符数组
-     * @param {number} except - 排除的索引（刚刚移除的位置）
-     * @returns {Array<Array<string>>}
-     */
-    inserting(arr, except) {
-        const { adds } = this.ruleManager.getRules();
-        const results = [];
-        
-        // 从空格中获取可以添加的字符
-        const spaceAdds = adds[' '];
-        if (!spaceAdds) return [];
-        
-        // 尝试在每个位置插入新字符（包括最前面和最后面）
-        // 注意：arr已经被wrapWithSpaces包装，所以arr[0]和arr[arr.length-1]是空格
-        for (let insertIdx = 0; insertIdx <= arr.length; insertIdx++) {
-            [...spaceAdds].forEach(newChar => {
-                const newArr = [...arr];
-                newArr.splice(insertIdx, 0, newChar);
-                results.push(newArr);
-            });
+        // multiCharTransforms (11 → 4 etc.)
+        const trans11 = rc.trans.get('11');
+        if (trans11) {
+            for (let i = 0; i < raw.length - 1; i++) {
+                if (raw[i] === '1' && raw[i + 1] === '1') {
+                    for (const t of trans11) {
+                        const a = [...raw]; a.splice(i, 2, t); yield a;
+                    }
+                }
+            }
         }
-        
-        return results;
     }
 
     /**
-     * 移动两根火柴的位置变换（trans2，不改变火柴总数）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
+     * 单根移动的策略列表（供 solve 迭代）
+     * @returns {Array<{candidates: Iterable, method: string}>}
      */
-    transforms2(arr) {
-        const { trans2 } = this.ruleManager.getRules();
-        if (!trans2) return [];
-        return arr.flatMap((c, i) => {
-            const transformSet = trans2[c];
-            if (!transformSet) return [];
-            return [...transformSet].map(re => this.replace(arr, i, re));
-        });
+    _strategiesSingle(wrapped, raw) {
+        const rc = this._rc;
+        return [
+            { method: 'transform',  candidates: this._genTransforms(wrapped, rc.trans) },
+            { method: 'move',       candidates: this._genMoves(wrapped, rc.subs, rc.adds, rc.spaceAdds) },
+            { method: 'multiChar',  candidates: this._genMultiChar(raw, rc.trans) },
+        ];
     }
 
     /**
-     * 移动两根火柴（先减后加）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
+     * 双根移动的策略列表（供 solve 迭代）
+     * @returns {Array<{candidates: Iterable, method: string}>}
      */
-    moves2(arr) {
-        const { subs2 } = this.ruleManager.getRules();
-        if (!subs2) return [];
-        const results = [];
-        
-        arr.forEach((c, i) => {
-            const subsSet = subs2[c];
-            if (!subsSet) return;
-            
-            [...subsSet].forEach(re => {
-                // 添加到现有位置
-                results.push(...this.adding2(this.replace(arr, i, re), i));
-                // 插入新位置
-                results.push(...this.inserting2(this.replace(arr, i, re), i));
-            });
-        });
-        
-        return results;
+    _strategiesDouble(wrapped, raw) {
+        const rc = this._rc;
+        return [
+            { method: 'transform2',       candidates: this._genTransforms(wrapped, rc.trans2) },
+            { method: 'move2',            candidates: this._genMoves(wrapped, rc.subs2, rc.adds2, rc.spaceAdds2) },
+            { method: 'moveSubThenAdd',   candidates: this._genMoveSubThenAdd(wrapped, rc) },
+            { method: 'moveAddThenSub',   candidates: this._genMoveAddThenSub(wrapped, rc) },
+            { method: 'removeRemoveAdd2', candidates: this._genRemoveRemoveAdd2(wrapped, rc) },
+            { method: 'removeTwoAddTwo',  candidates: this._genRemoveTwoAddTwo(wrapped, rc) },
+            { method: 'combinedMoves',    candidates: this._genCombinedMoves(wrapped, rc) },
+            { method: 'transformTwice',   candidates: this._genTransformTwice(wrapped, rc) },
+            { method: 'transformAndMove', candidates: this._genTransformAndMove(wrapped, rc) },
+        ];
+    }
+
+    // ─────────────────────────────────────────────
+    // 通用 generator 辅助（使用预缓存规则）
+    // ─────────────────────────────────────────────
+
+    /** 在数组前后及元素间插入空格占位 */
+    wrapWithSpaces(arr) {
+        const result = [' '];
+        for (const item of arr) { result.push(item); result.push(' '); }
+        return result;
     }
 
     /**
-     * 添加两根火柴到其他位置
-     * @param {Array<string>} arr - 字符数组
-     * @param {number} except - 排除的索引
-     * @returns {Array<Array<string>>}
+     * 通用 transforms generator：对 arr 中每个 token，尝试 transMap 中定义的同 stick 替换
      */
-    adding2(arr, except) {
-        const { adds2 } = this.ruleManager.getRules();
-        if (!adds2) return [];
-        return arr.flatMap((c, i) => {
-            if (i === except) return [];
-            const addsSet = adds2[c];
-            if (!addsSet) return [];
-            return [...addsSet].map(re => this.replace(arr, i, re));
-        });
-    }
-
-    /**
-     * 插入两根火柴到新位置（从空格派生新字符）
-     * @param {Array<string>} arr - 字符数组
-     * @param {number} except - 排除的索引（刚刚移除的位置）
-     * @returns {Array<Array<string>>}
-     */
-    inserting2(arr, except) {
-        const { adds2 } = this.ruleManager.getRules();
-        if (!adds2) return [];
-        const results = [];
-        
-        // 从空格中获取可以添加的字符
-        const spaceAdds = adds2[' '];
-        if (!spaceAdds) return [];
-        
-        // 尝试在每个位置插入新字符
-        for (let insertIdx = 0; insertIdx <= arr.length; insertIdx++) {
-            [...spaceAdds].forEach(newChar => {
-                const newArr = [...arr];
-                newArr.splice(insertIdx, 0, newChar);
-                results.push(newArr);
-            });
+    *_genTransforms(arr, transMap) {
+        for (let i = 0; i < arr.length; i++) {
+            const targets = transMap.get(arr[i]);
+            if (!targets) continue;
+            for (const t of targets) {
+                const a = [...arr]; a[i] = t; yield a;
+            }
         }
-        
-        return results;
     }
 
     /**
-     * 组合两次单根移动操作
-     * 这可以模拟某些复杂的两根火柴移动场景
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
+     * 通用 moves generator：sub(i) → add(j) 或 insert
      */
-    combinedMoves(arr) {
-        const results = [];
-        const { subs, adds } = this.ruleManager.getRules();
-        
-        // 第一次移动：从位置 i 移除一根
-        arr.forEach((c, i) => {
-            const subsSet = subs[c];
-            if (!subsSet) return;
-            
-            [...subsSet].forEach(replacement1 => {
-                const arr1 = this.replace(arr, i, replacement1);
-                
-                // 第一次移动：添加到位置 j
-                arr1.forEach((d, j) => {
-                    if (i === j) return;
-                    const addsSet = adds[d];
-                    if (!addsSet) return;
-                    
-                    [...addsSet].forEach(replacement2 => {
-                        const arr2 = this.replace(arr1, j, replacement2);
-                        
-                        // 第二次移动：从位置 k 移除一根
-                        arr2.forEach((e, k) => {
-                            const subsSet2 = subs[e];
-                            if (!subsSet2) return;
-                            
-                            [...subsSet2].forEach(replacement3 => {
-                                const arr3 = this.replace(arr2, k, replacement3);
-                                
-                                // 第二次移动：添加到位置 m（现有位置）
-                                arr3.forEach((f, m) => {
-                                    if (k === m) return;
-                                    const addsSet2 = adds[f];
-                                    if (!addsSet2) return;
-                                    
-                                    [...addsSet2].forEach(replacement4 => {
-                                        const arr4 = this.replace(arr3, m, replacement4);
-                                        results.push(arr4);
-                                    });
-                                });
-                                
-                                // 第二次移动：插入到新位置
-                                const spaceAdds = adds[' '];
-                                if (spaceAdds) {
-                                    for (let insertIdx = 0; insertIdx <= arr3.length; insertIdx++) {
-                                        [...spaceAdds].forEach(newChar => {
-                                            const arr4 = [...arr3];
-                                            arr4.splice(insertIdx, 0, newChar);
-                                            results.push(arr4);
-                                        });
+    *_genMoves(arr, subsMap, addsMap, spaceAdds) {
+        for (let i = 0; i < arr.length; i++) {
+            const subsArr = subsMap.get(arr[i]);
+            if (!subsArr) continue;
+            for (const sub of subsArr) {
+                const a1 = [...arr]; a1[i] = sub;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const addsArr = addsMap.get(a1[j]);
+                    if (!addsArr) continue;
+                    for (const ad of addsArr) {
+                        const a2 = [...a1]; a2[j] = ad; yield a2;
+                    }
+                }
+                for (const sp of spaceAdds) {
+                    for (let ins = 0; ins <= a1.length; ins++) {
+                        const a2 = [...a1]; a2.splice(ins, 0, sp); yield a2;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * multiCharTransforms generator（11 → 4 等）
+     */
+    *_genMultiChar(raw, transMap) {
+        const trans11 = transMap.get('11');
+        if (!trans11) return;
+        for (let i = 0; i < raw.length - 1; i++) {
+            if (raw[i] === '1' && raw[i + 1] === '1') {
+                for (const t of trans11) {
+                    const a = [...raw]; a.splice(i, 2, t); yield a;
+                }
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    // 双根移动专用 generators
+    // ─────────────────────────────────────────────
+
+    /** moveSubThenAdd：moveSub(i) + add(j or insert) */
+    *_genMoveSubThenAdd(arr, rc) {
+        const { moveSub, adds, spaceAdds } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const ms = moveSub.get(arr[i]);
+            if (!ms) continue;
+            for (const r1 of ms) {
+                const a1 = [...arr]; a1[i] = r1;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const ad = adds.get(a1[j]);
+                    if (!ad) continue;
+                    for (const r2 of ad) { const a2 = [...a1]; a2[j] = r2; yield a2; }
+                }
+                for (const sp of spaceAdds) {
+                    for (let ins = 0; ins <= a1.length; ins++) {
+                        const a2 = [...a1]; a2.splice(ins, 0, sp); yield a2;
+                    }
+                }
+            }
+        }
+    }
+
+    /** moveAddThenSub：moveAdd(i) + sub(j) */
+    *_genMoveAddThenSub(arr, rc) {
+        const { moveAdd, subs } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const ma = moveAdd.get(arr[i]);
+            if (!ma) continue;
+            for (const r1 of ma) {
+                const a1 = [...arr]; a1[i] = r1;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const sb = subs.get(a1[j]);
+                    if (!sb) continue;
+                    for (const r2 of sb) { const a2 = [...a1]; a2[j] = r2; yield a2; }
+                }
+            }
+        }
+    }
+
+    /** removeRemoveAdd2：sub(i) + sub(j) + add2(k) */
+    *_genRemoveRemoveAdd2(arr, rc) {
+        const { subs, adds2 } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const sb1 = subs.get(arr[i]);
+            if (!sb1) continue;
+            for (const r1 of sb1) {
+                const a1 = [...arr]; a1[i] = r1;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const sb2 = subs.get(a1[j]);
+                    if (!sb2) continue;
+                    for (const r2 of sb2) {
+                        const a2 = [...a1]; a2[j] = r2;
+                        for (let k = 0; k < a2.length; k++) {
+                            if (k === i || k === j) continue;
+                            const ad2 = adds2.get(a2[k]);
+                            if (!ad2) continue;
+                            for (const r3 of ad2) { const a3 = [...a2]; a3[k] = r3; yield a3; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** removeTwoAddTwo：sub2(i) + add(j or insert) + add(k or insert) */
+    *_genRemoveTwoAddTwo(arr, rc) {
+        const { subs2, adds, spaceAdds } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const sb2 = subs2.get(arr[i]);
+            if (!sb2) continue;
+            for (const r1 of sb2) {
+                const a1 = [...arr]; a1[i] = r1;
+                // 第一次 add：现有位置 j
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const ad1 = adds.get(a1[j]);
+                    if (!ad1) continue;
+                    for (const r2 of ad1) {
+                        const a2 = [...a1]; a2[j] = r2;
+                        // 第二次 add：现有位置 k
+                        for (let k = 0; k < a2.length; k++) {
+                            if (k === i || k === j) continue;
+                            const ad2 = adds.get(a2[k]);
+                            if (!ad2) continue;
+                            for (const r3 of ad2) { const a3 = [...a2]; a3[k] = r3; yield a3; }
+                        }
+                        // 第二次 add：插入
+                        for (const sp of spaceAdds) {
+                            for (let ins = 0; ins <= a2.length; ins++) {
+                                const a3 = [...a2]; a3.splice(ins, 0, sp); yield a3;
+                            }
+                        }
+                    }
+                }
+                // 第一次 add：插入位置
+                for (const sp1 of spaceAdds) {
+                    for (let ins1 = 0; ins1 <= a1.length; ins1++) {
+                        const a2 = [...a1]; a2.splice(ins1, 0, sp1);
+                        // 第二次 add：现有位置 k
+                        for (let k = 0; k < a2.length; k++) {
+                            const ad2 = adds.get(a2[k]);
+                            if (!ad2) continue;
+                            for (const r3 of ad2) { const a3 = [...a2]; a3[k] = r3; yield a3; }
+                        }
+                        // 第二次 add：插入
+                        for (const sp2 of spaceAdds) {
+                            for (let ins2 = 0; ins2 <= a2.length; ins2++) {
+                                const a3 = [...a2]; a3.splice(ins2, 0, sp2); yield a3;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** combinedMoves：两次完整的 sub→add（同 moveCount=1 两次）*/
+    *_genCombinedMoves(arr, rc) {
+        const { subs, adds, spaceAdds } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const sb1 = subs.get(arr[i]);
+            if (!sb1) continue;
+            for (const r1 of sb1) {
+                const a1 = [...arr]; a1[i] = r1;
+                // 第一次 add：现有位置 j
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const ad1 = adds.get(a1[j]);
+                    if (!ad1) continue;
+                    for (const r2 of ad1) {
+                        const a2 = [...a1]; a2[j] = r2;
+                        // 第二次 sub：位置 k
+                        for (let k = 0; k < a2.length; k++) {
+                            const sb2 = subs.get(a2[k]);
+                            if (!sb2) continue;
+                            for (const r3 of sb2) {
+                                const a3 = [...a2]; a3[k] = r3;
+                                // 第二次 add：现有位置 m
+                                for (let m = 0; m < a3.length; m++) {
+                                    if (m === k) continue;
+                                    const ad2 = adds.get(a3[m]);
+                                    if (!ad2) continue;
+                                    for (const r4 of ad2) { const a4 = [...a3]; a4[m] = r4; yield a4; }
+                                }
+                                // 第二次 add：插入
+                                for (const sp of spaceAdds) {
+                                    for (let ins = 0; ins <= a3.length; ins++) {
+                                        const a4 = [...a3]; a4.splice(ins, 0, sp); yield a4;
                                     }
                                 }
-                            });
-                        });
-                    });
-                });
-            });
-        });
-        
-        return results;
-    }
-
-    /**
-     * 转换1根 + 转换1根的组合操作
-     * 例如：2→3（转换）+ (6)H→(9)H（转换）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    transformTwice(arr) {
-        const results = [];
-        const { trans } = this.ruleManager.getRules();
-        
-        // 第一步：在位置 i 转换一根火柴
-        arr.forEach((c, i) => {
-            const transSet = trans[c];
-            if (!transSet) return;
-            
-            [...transSet].forEach(replacement1 => {
-                const arr1 = this.replace(arr, i, replacement1);
-                
-                // 第二步：在位置 j（j≠i）转换另一根火柴
-                arr1.forEach((d, j) => {
-                    if (i === j) return; // 不能在同一位置转换两次
-                    const transSet2 = trans[d];
-                    if (!transSet2) return;
-                    
-                    [...transSet2].forEach(replacement2 => {
-                        const arr2 = this.replace(arr1, j, replacement2);
-                        results.push(arr2);
-                    });
-                });
-            });
-        });
-        
-        return results;
-    }
-
-    /**
-     * 转换1根 + 移除1根 + 添加1根的组合操作
-     * 例如：41+29=78 → 41+38=79 (8→9转换, 2→3需移除再添加)
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    transformAndMove(arr) {
-        const results = [];
-        const { trans, subs, adds } = this.ruleManager.getRules();
-        
-        // 第一步：在位置 i 转换一根火柴
-        arr.forEach((c, i) => {
-            const transSet = trans[c];
-            if (!transSet) return;
-            
-            [...transSet].forEach(replacement1 => {
-                const arr1 = this.replace(arr, i, replacement1);
-                
-                // 第二步：在位置 j 移除一根火柴
-                arr1.forEach((d, j) => {
-                    if (i === j) return;
-                    const subsSet = subs[d];
-                    if (!subsSet) return;
-                    
-                    [...subsSet].forEach(replacement2 => {
-                        const arr2 = this.replace(arr1, j, replacement2);
-                        
-                        // 第三步：在位置 k 添加一根火柴（现有位置）
-                        arr2.forEach((e, k) => {
-                            if (k === i || k === j) return;
-                            const addsSet = adds[e];
-                            if (!addsSet) return;
-                            
-                            [...addsSet].forEach(replacement3 => {
-                                const arr3 = this.replace(arr2, k, replacement3);
-                                results.push(arr3);
-                            });
-                        });
-                        
-                        // 第三步：插入到新位置
-                        const spaceAdds = adds[' '];
-                        if (spaceAdds) {
-                            for (let insertIdx = 0; insertIdx <= arr2.length; insertIdx++) {
-                                [...spaceAdds].forEach(newChar => {
-                                    const arr3 = [...arr2];
-                                    arr3.splice(insertIdx, 0, newChar);
-                                    results.push(arr3);
-                                });
                             }
                         }
-                    });
-                });
-            });
-        });
-        
-        return results;
-    }
-
-    /**
-     * "移动一根&移除一根" at 位置i + "添加一根" at 位置j
-     * 例如：8→9（移除1根），同时另一位置通过moveSub转换（净-1），
-     * 但此方法是：moveSub在i（净-1），adds在j（净+1）→ 合计净0
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    moveSubThenAdd(arr) {
-        const results = [];
-        const { moveSub, adds } = this.ruleManager.getRules();
-        if (!moveSub) return results;
-
-        arr.forEach((c, i) => {
-            const moveSubSet = moveSub[c];
-            if (!moveSubSet || moveSubSet.size === 0) return;
-
-            [...moveSubSet].forEach(r1 => {
-                const arr1 = this.replace(arr, i, r1);
-
-                // 在另一位置添加1根火柴
-                arr1.forEach((d, j) => {
-                    if (j === i) return;
-                    const addsSet = adds[d];
-                    if (!addsSet || addsSet.size === 0) return;
-                    [...addsSet].forEach(r2 => {
-                        results.push(this.replace(arr1, j, r2));
-                    });
-                });
-
-                // 从空格位置插入新字符（adds from space）
-                const spaceAdds = adds[' '];
-                if (spaceAdds) {
-                    for (let insertIdx = 0; insertIdx <= arr1.length; insertIdx++) {
-                        [...spaceAdds].forEach(newChar => {
-                            const arr2 = [...arr1];
-                            arr2.splice(insertIdx, 0, newChar);
-                            results.push(arr2);
-                        });
                     }
                 }
-            });
-        });
-
-        return results;
+            }
+        }
     }
 
-    /**
-     * "移动一根&添加一根" at 位置i + "移除一根" at 位置j
-     * 例如：4→5（moveAdd，需从别处接收1根），8→9（subs，提供1根）
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    moveAddThenSub(arr) {
-        const results = [];
-        const { moveAdd, subs } = this.ruleManager.getRules();
-        if (!moveAdd) return results;
-
-        arr.forEach((c, i) => {
-            const moveAddSet = moveAdd[c];
-            if (!moveAddSet || moveAddSet.size === 0) return;
-
-            [...moveAddSet].forEach(r1 => {
-                const arr1 = this.replace(arr, i, r1);
-
-                // 在另一位置移除1根火柴（提供给位置i）
-                arr1.forEach((d, j) => {
-                    if (j === i) return;
-                    const subsSet = subs[d];
-                    if (!subsSet || subsSet.size === 0) return;
-                    [...subsSet].forEach(r2 => {
-                        results.push(this.replace(arr1, j, r2));
-                    });
-                });
-            });
-        });
-
-        return results;
+    /** transformTwice：trans(i) + trans(j) */
+    *_genTransformTwice(arr, rc) {
+        const { trans } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const t1 = trans.get(arr[i]);
+            if (!t1) continue;
+            for (const r1 of t1) {
+                const a1 = [...arr]; a1[i] = r1;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const t2 = trans.get(a1[j]);
+                    if (!t2) continue;
+                    for (const r2 of t2) { const a2 = [...a1]; a2[j] = r2; yield a2; }
+                }
+            }
+        }
     }
 
-    /**
-     * 移除一根 at 位置i + 移除一根 at 位置j + 添加两根 at 位置k
-     * 例如：8→9（-1）+ 8→9（-1）+ 空格→1（+2）= 净0
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    removeRemoveAdd2(arr) {
-        const results = [];
-        const { subs, adds2 } = this.ruleManager.getRules();
-        if (!adds2) return results;
-
-        arr.forEach((c, i) => {
-            const subsSet1 = subs[c];
-            if (!subsSet1 || subsSet1.size === 0) return;
-
-            [...subsSet1].forEach(r1 => {
-                const arr1 = this.replace(arr, i, r1);
-
-                arr1.forEach((d, j) => {
-                    if (j === i) return;
-                    const subsSet2 = subs[d];
-                    if (!subsSet2 || subsSet2.size === 0) return;
-
-                    [...subsSet2].forEach(r2 => {
-                        const arr2 = this.replace(arr1, j, r2);
-
-                        // 在第三个位置添加两根火柴
-                        arr2.forEach((e, k) => {
-                            if (k === i || k === j) return;
-                            const adds2Set = adds2[e];
-                            if (!adds2Set || adds2Set.size === 0) return;
-                            [...adds2Set].forEach(r3 => {
-                                results.push(this.replace(arr2, k, r3));
-                            });
-                        });
-                    });
-                });
-            });
-        });
-
-        return results;
-    }
-
-    /**
-     * 移除两根 at 位置i + 添加一根 at 位置j + 添加一根 at 位置k
-     * 例如：4→1（-2）+ 3→9（+1）+ 空格→-（+1）= 净0
-     * 用例：94-35=48 → 91 - 95 = 4 - 8
-     * @param {Array<string>} arr - 字符数组
-     * @returns {Array<Array<string>>}
-     */
-    removeTwoAddTwo(arr) {
-        const results = [];
-        const { subs2, adds } = this.ruleManager.getRules();
-        if (!subs2 || !adds) return results;
-
-        arr.forEach((c, i) => {
-            const subs2Set = subs2[c];
-            if (!subs2Set || subs2Set.size === 0) return;
-
-            [...subs2Set].forEach(r1 => {
-                const arr1 = this.replace(arr, i, r1);
-
-                // 在位置j添加一根火柴
-                arr1.forEach((d, j) => {
-                    if (j === i) return;
-                    const addsSet = adds[d];
-                    if (!addsSet || addsSet.size === 0) return;
-
-                    [...addsSet].forEach(r2 => {
-                        const arr2 = this.replace(arr1, j, r2);
-
-                        // 在位置k添加一根火柴（现有位置）
-                        arr2.forEach((e, k) => {
-                            if (k === i || k === j) return;
-                            const addsSet2 = adds[e];
-                            if (!addsSet2 || addsSet2.size === 0) return;
-                            [...addsSet2].forEach(r3 => {
-                                results.push(this.replace(arr2, k, r3));
-                            });
-                        });
-
-                        // 从空格位置插入新字符（第二次添加）
-                        const spaceAdds = adds[' '];
-                        if (spaceAdds) {
-                            for (let insertIdx = 0; insertIdx <= arr2.length; insertIdx++) {
-                                [...spaceAdds].forEach(newChar => {
-                                    const arr3 = [...arr2];
-                                    arr3.splice(insertIdx, 0, newChar);
-                                    results.push(arr3);
-                                });
+    /** transformAndMove：trans(i) + sub(j) + add(k or insert) */
+    *_genTransformAndMove(arr, rc) {
+        const { trans, subs, adds, spaceAdds } = rc;
+        for (let i = 0; i < arr.length; i++) {
+            const t1 = trans.get(arr[i]);
+            if (!t1) continue;
+            for (const r1 of t1) {
+                const a1 = [...arr]; a1[i] = r1;
+                for (let j = 0; j < a1.length; j++) {
+                    if (j === i) continue;
+                    const sb = subs.get(a1[j]);
+                    if (!sb) continue;
+                    for (const r2 of sb) {
+                        const a2 = [...a1]; a2[j] = r2;
+                        // add 到现有位置 k
+                        for (let k = 0; k < a2.length; k++) {
+                            if (k === i || k === j) continue;
+                            const ad = adds.get(a2[k]);
+                            if (!ad) continue;
+                            for (const r3 of ad) { const a3 = [...a2]; a3[k] = r3; yield a3; }
+                        }
+                        // add 到插入位置
+                        for (const sp of spaceAdds) {
+                            for (let ins = 0; ins <= a2.length; ins++) {
+                                const a3 = [...a2]; a3.splice(ins, 0, sp); yield a3;
                             }
                         }
-                    });
-                });
-
-                // 在位置j从空格插入新字符（第一次添加）
-                const spaceAdds = adds[' '];
-                if (spaceAdds) {
-                    for (let insertIdx = 0; insertIdx <= arr1.length; insertIdx++) {
-                        [...spaceAdds].forEach(newChar1 => {
-                            const arr2 = [...arr1];
-                            arr2.splice(insertIdx, 0, newChar1);
-
-                            // 在位置k添加一根火柴（现有位置）
-                            arr2.forEach((e, k) => {
-                                const addsSet2 = adds[e];
-                                if (!addsSet2 || addsSet2.size === 0) return;
-                                [...addsSet2].forEach(r3 => {
-                                    results.push(this.replace(arr2, k, r3));
-                                });
-                            });
-
-                            // 从空格位置再次插入新字符（第二次添加）
-                            for (let insertIdx2 = 0; insertIdx2 <= arr2.length; insertIdx2++) {
-                                [...spaceAdds].forEach(newChar2 => {
-                                    const arr3 = [...arr2];
-                                    arr3.splice(insertIdx2, 0, newChar2);
-                                    results.push(arr3);
-                                });
-                            }
-                        });
                     }
                 }
-            });
-        });
-
-        return results;
+            }
+        }
     }
 
 }

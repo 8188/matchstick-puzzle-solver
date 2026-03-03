@@ -3,7 +3,7 @@
 
 [🇨🇳 中文](./README.md) | [🇬🇧 English](#)
 
-**Version: v0.4**
+**Version: v0.5**
 
 ---
 
@@ -63,7 +63,7 @@ npm test
 Planned features for future versions:
 
 - [x] **Two-Match Mode**: Support solving by moving two matchsticks (✅ v0.2)
-- [x] **Performance Optimization**: Pruning algorithms, non-blocking solving (✅ v0.3)
+- [x] **Performance Optimization**: Pruning algorithms, non-blocking solving (✅ v0.3), Rule cache + generator lazy evaluation, 180× speedup (✅ v0.5)
 - [x] **Statistics Features**: Solving time tracking (✅ v0.3, debug mode)
 - [ ] **Custom Rules**: Allow users to define custom matchstick transformation rules
 - [ ] **Puzzle Generator**: Automatically generate matchstick puzzles of varying difficulty

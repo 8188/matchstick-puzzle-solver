@@ -8,8 +8,17 @@
 ## [未发布]
 
 ### 计划中
-- 图数据库优化：使用图结构加速大规模搜索
 - 自定义规则功能：允许用户自定义火柴转换规则
+- 谜题生成器：自动生成不同难度的火柴棒谜题
+
+## [v0.5] - 2026-03-03
+
+### 性能
+- **求解器深度重构**（`solver.js`），测试套件耗时从 **130 秒** 降至 **700 毫秒**，提速约 **180 倍**：
+  - **规则缓存**：新增 `_buildRuleCache()` 方法，在每次 `solve()` 调用开头将规则中的 `Set` 一次性展开为 `Map<string, string[]>`，消除所有方法内的重复 `getRules()` 调用和 `[...set]` 展开开销
+  - **惰性生成（Generator）**：将所有变换方法（`transforms`、`moves`、`combinedMoves`、`transformTwice` 等共 9 种策略）改写为 `function*` 生成器，按需 `yield` 候选，而非预先堆积全量数组
+  - **边生成边验证**：`solve()` 主循环在每个候选生成后立即执行 `isQuickValid` + `Evaluator.evaluate` 检验，无效候选直接跳过，不再等到全量生成后统一过滤
+  - **策略接口统一**：新增 `_strategiesSingle` / `_strategiesDouble` 方法，以 `{candidates, method}` 列表形式描述策略，`solve()` 统一迭代，移除冗余的 `mutateTagged`、`mutate`、`mutateSingle`、`mutateDouble`、`filterOutSingleMoveSolutions` 等旧方法
 
 ## [v0.4] - 2026-03-02
 

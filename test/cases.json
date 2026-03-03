@@ -27,8 +27,8 @@
     { "equation": "64+98=11", "expectedSolutions": 2, "maxMutations": 10000 },
     { "equation": "41+29=78", "expectedSolutions": 6, "maxMutations": 40000 },
     { "equation": "79-39=17", "expectedSolutions": 7, "maxMutations": 40000 },
-    { "equation": "94-35=48", "expectedSolutions": 9, "maxMutations": 20000, "description": "测试 moveAddThenSub" },
-    { "equation": "1+7=8+8", "expectedSolutions": 11, "maxMutations": 10000, "description": "测试 removeRemoveAdd2" }
+    { "equation": "94-35=48", "expectedSolutions": 9, "maxMutations": 20000 },
+    { "equation": "1+7=8+8", "expectedSolutions": 11, "maxMutations": 10000 }
   ],
   "handwrittenMode2Match": [
     { "equation": "(1)H(1)H(1)H+(1)H=(0)H", "expectedSolutions": 6, "maxMutations": 30000 },
