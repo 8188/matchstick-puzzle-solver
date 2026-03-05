@@ -772,12 +772,12 @@ export class App {
 
         // 始终显示🌐图标
         langToggle.textContent = '🌐';
-        langToggle.title = this.i18n.getCurrentLanguage() === 'zh' ? 'Switch to English' : '切换到中文';
+        langToggle.title = this.i18n.t('langToggle');
 
         langToggle.addEventListener('click', () => {
             const newLang = this.i18n.getCurrentLanguage() === 'zh' ? 'en' : 'zh';
             this.i18n.setLanguage(newLang);
-            langToggle.title = newLang === 'zh' ? 'Switch to English' : '切换到中文';
+            langToggle.title = this.i18n.t('langToggle');
             
             // 更新页面文本（不包括标题）
             this.updatePageText();

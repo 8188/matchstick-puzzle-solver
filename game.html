@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火柴棒谜题游戏 - 3D版</title>
+    <link rel="stylesheet" href="src/ui/styles/game.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Three.js 渲染画布 -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- 游戏UI层 -->
+        <div id="game-ui">
+            <header class="game-header">
+                <h1 id="game-title">🔥 火柴棒谜题挑战</h1>
+                <div class="stats">
+                    <span><span id="label-level">关卡</span>: <span id="level">1</span></span>
+                    <span><span id="label-score">分数</span>: <span id="score">0</span></span>
+                    <button id="lang-toggle-game" class="btn-secondary" type="button" title="Switch Language">🌐</button>
+                </div>
+            </header>
+
+            <!-- 谜题显示区 -->
+            <div id="puzzle-container">
+                <div class="puzzle-info">
+                    <p id="puzzle-instruction">移动 <span id="move-count">1</span> 根火柴，使等式成立</p>
+                    <div class="puzzle-options">
+                        <label>
+                            <span id="label-mode">模式</span>：
+                            <select id="mode-select">
+                                <option id="opt-mode-standard" value="standard">标准模式</option>
+                                <option id="opt-mode-handwritten" value="handwritten">手写模式</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span id="label-move">移动</span>：
+                            <select id="move-select">
+                                <option id="opt-move-1" value="1">1 根</option>
+                                <option id="opt-move-2" value="2">2 根</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span id="label-difficulty">难度</span>：
+                            <select id="difficulty-select">
+                                <option id="opt-diff-1" value="1">Lv1 三个个位数</option>
+                                <option id="opt-diff-2" value="2">Lv2 1个两位数</option>
+                                <option id="opt-diff-3" value="3">Lv3 2个两位数</option>
+                                <option id="opt-diff-4" value="4">Lv4 3个两位数</option>
+                                <option id="opt-diff-5" value="5">Lv5 四数参与运算</option>
+                                <option id="opt-diff-6" value="6">Lv6 含1个三位数</option>
+                                <option id="opt-diff-7" value="7">Lv7 四数参与运算（含两位数）</option>
+                                <option id="opt-diff-8" value="8">Lv8 一个三位数（含两位数）</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div id="equation-display">
+                    <!-- Three.js 3D火柴棍将渲染在这里 -->
+                </div>
+            </div>
+
+            <!-- 答案输入区 -->
+            <div id="answer-section">
+                <div class="input-group answer-row">
+                    <span id="answer-label" class="answer-label">你的答案：</span>
+                    <input type="text" id="answer-input" placeholder="例如: 1+2=3" autocomplete="off">
+                    <button id="submit-btn" class="btn-primary">提交答案</button>
+                    <button id="hint-btn" class="btn-secondary">💡 获取提示</button>
+                </div>
+                <p id="hint-text"></p>
+            </div>
+
+            <!-- 反馈信息 -->
+            <div id="feedback" class="feedback hidden"></div>
+
+            <!-- 控制按钮 -->
+            <div class="controls">
+                <button id="new-puzzle-btn" class="btn-secondary">🎲 新谜题</button>
+                <button id="show-solution-btn" class="btn-secondary">👁️ 查看答案</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="burn-sfx" preload="auto">
+        <source src="assets/audio/fire-voice.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 导入库 -->
+    <!-- <script src="src/lib/three.min.js"></script>
+    <script src="src/lib/vanta.cells.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanta/0.5.21/vanta.cells.min.js"></script>
+    
+    <!-- 导入游戏模块（内部使用 Three.js 模块化导入） -->
+    <script type="module" src="src/ui/game/GameController.js"></script>
+</body>
+</html>

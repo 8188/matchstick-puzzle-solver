@@ -53,27 +53,11 @@
         </footer>
     </div>
 
-    <!-- 脚本 -->
+    <!-- 内联脚本：直接创建 App 实例即可初始化规则页 -->
     <script type="module">
         import { App } from './src/ui/app.js';
-
-        // 先同步主题（优先 localStorage，默认 dark）
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-
-        // 创建应用实例（规则页会自动渲染规则表和模式选择器）
-        window.app = new App();
-
-        // 设置主题按钮图标
-        const themeToggle = document.querySelector('#theme-toggle');
-        if (themeToggle) {
-            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-        }
-
-        // 规则页文本同步
-        if (window.app && window.app.updateRulesPageText) {
-            window.app.updateRulesPageText();
-        }
+        // App constructor 已经会调用 init()，会渲染规则表等 UI
+        new App();
     </script>
 </body>
 

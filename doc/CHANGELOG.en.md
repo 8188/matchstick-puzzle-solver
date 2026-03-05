@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.6] - 2026-03-05
+
+### Added
+- Added `game.html`.
+- Added a new entry button in `index.html` to open the game page (🎮).
+
+### Changed
+- Centralized game-page and result-list related texts into `src/utils/i18n.js` for unified bilingual i18n management.
+- Extracted shared 2D/3D digit segment definitions into `src/core/display-segments.js`, and reused them in both `MatchstickDisplay` and `MatchstickDisplay3D`.
+
 ### Planned
 - Custom rules feature: Allow users to define custom matchstick transformation rules
 - Puzzle generator: Automatically generate matchstick puzzles of varying difficulty
@@ -19,10 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Lazy generation (Generators)**: All transformation methods (`transforms`, `moves`, `combinedMoves`, `transformTwice`, etc. — 9 strategies total) rewritten as `function*` generators that `yield` candidates on demand instead of building full result arrays upfront
   - **Validate-as-you-go**: The main loop in `solve()` runs `isQuickValid` + `Evaluator.evaluate` immediately after each candidate is yielded; invalid candidates are skipped without waiting for full generation to complete
   - **Unified strategy interface**: Added `_strategiesSingle` / `_strategiesDouble` that return `{candidates, method}` lists iterated uniformly by `solve()`; removed the now-redundant `mutateTagged`, `mutate`, `mutateSingle`, `mutateDouble`, and `filterOutSingleMoveSolutions`
-
-### Notes
-- No `--no-cache` flag is needed: `_rc` is a local cache rebuilt fresh at the start of every `solve()` call, with no cross-call persistence — unlike the graph version which has a persistent `transformationCache`
-- All 32 test cases produce identical results to v0.4; only performance changes
 
 ## [v0.4] - 2026-03-02
 

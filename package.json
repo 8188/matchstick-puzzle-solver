@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/ui/app.js",
   "scripts": {
-    "test": "node test/test-solver.js"
+    "test": "node test/test-solver.js",
+    "serve": "npx http-server -p 8080 -c-1"
   },
   "keywords": [
     "matchstick",
