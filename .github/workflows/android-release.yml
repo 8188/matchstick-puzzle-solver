@@ -98,3 +98,26 @@ jobs:
           name: app-release-signed-apk
           path: |
             android/app/build/outputs/apk/release/*.apk
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-signed-apk
+          path: ./artifacts
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Matchstick Puzzle Solver v${{ steps.version.outputs.version }}
+          body: |
+            Automated release of signed Android APK for version ${{ steps.version.outputs.version }}.
+            - Includes latest puzzle solver features and UI improvements.
+          files: ./artifacts/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

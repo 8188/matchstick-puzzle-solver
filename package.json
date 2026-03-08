@@ -1,6 +1,6 @@
 {
   "name": "matchstick-puzzle-solver",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A matchstick equation solver supporting both standard and handwritten modes",
   "type": "module",
   "main": "src/ui/app.js",
