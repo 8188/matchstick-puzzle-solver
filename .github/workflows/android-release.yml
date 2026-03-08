@@ -17,7 +17,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          # Capacitor CLI now requires Node >=22; select latest LTS.
           # caching requires a lock file (package-lock.json, yarn.lock, etc.)
           # this repo does not commit one, so we skip the cache step to avoid
           # the "Dependencies lock file is not found" error.
