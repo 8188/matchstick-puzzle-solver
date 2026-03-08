@@ -7,19 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [v0.6] - 2026-03-05
+## [v0.6] - 2026-03-08
 
 ### Added
 - Added `game.html`.
 - Added a new entry button in `index.html` to open the game page (🎮).
+- Added GitHub Actions cloud packaging workflow (`android-release.yml`) to produce Android Release APK artifacts.
 
 ### Changed
 - Centralized game-page and result-list related texts into `src/utils/i18n.js` for unified bilingual i18n management.
 - Extracted shared 2D/3D digit segment definitions into `src/core/display-segments.js`, and reused them in both `MatchstickDisplay` and `MatchstickDisplay3D`.
-
-### Planned
-- Custom rules feature: Allow users to define custom matchstick transformation rules
-- Puzzle generator: Automatically generate matchstick puzzles of varying difficulty
+- Adjusted `game.html` layout scrolling behavior for small screens and tall pages to keep bottom action buttons reachable.
+- Improved background coverage strategy in `game.html` during scroll to fix missing background area in lower viewport sections.
 
 ## [v0.5] - 2026-03-03
 

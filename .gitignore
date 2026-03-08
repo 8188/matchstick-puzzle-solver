@@ -41,3 +41,8 @@ output.txt
 # Editor backups
 *.bak
 *.orig
+
+# capacitor
+www/
+android/
+README.txt

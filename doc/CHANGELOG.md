@@ -7,19 +7,18 @@
 
 ## [未发布]
 
-## [v0.6] - 2026-03-05
+## [v0.6] - 2026-03-08
 
 ### 新增
 - 新增 `game.html` 。
 - `index.html` 新增跳转到游戏页的入口按钮（🎮）。
+- 新增 GitHub Actions 云端打包工作流（`android-release.yml`），支持生成 Android Release APK 工件。
 
 ### 变更
 - 将游戏页与结果列表相关文案统一收敛到 `src/utils/i18n.js`，由集中式国际化配置管理（中英文）。
 - 将 2D/3D 共用的数字线段定义提取为公共模块 `src/core/display-segments.js`，`MatchstickDisplay` 与 `MatchstickDisplay3D` 统一复用同一套构型数据。
-
-### 计划中
-- 自定义规则功能：允许用户自定义火柴转换规则
-- 谜题生成器：自动生成不同难度的火柴棒谜题
+- 调整 `game.html` 页面在小屏与长页面场景下的布局滚动行为，确保底部操作按钮可达。
+- 优化 `game.html` 滚动场景下的背景覆盖策略，修复下拉区域背景不完整问题。
 
 ## [v0.5] - 2026-03-03
 

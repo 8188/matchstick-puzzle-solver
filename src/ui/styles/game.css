@@ -20,18 +20,20 @@ body {
                 radial-gradient(circle at 88% 0%, rgba(210, 225, 255, 0.35), transparent 40%),
                 var(--bg);
     color: var(--text);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 #game-container {
     position: relative;
     width: 100vw;
-    height: 100vh;
+    min-height: 100vh;
     overflow: hidden;
 }
 
 #game-canvas {
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 4; /* 让 3D 火柴位于面板之上 */
     pointer-events: none; /* 不阻塞按钮输入 */
@@ -48,6 +50,7 @@ body {
     max-width: 980px;
     margin: 0 auto;
     padding: 24px;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     gap: 16px;

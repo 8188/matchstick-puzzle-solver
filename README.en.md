@@ -3,7 +3,7 @@
 
 [🇨🇳 中文](./README.md) | [🇬🇧 English](#)
 
-**Version: v0.5**
+**Version: v0.6**
 
 ---
 
@@ -21,9 +21,7 @@ A modern matchstick equation solver supporting both standard and handwritten mod
 - 📊 **Detailed Display**: Shows solving method, descriptions, and computation time
 - 🖼️ **SVG Display**: Beautiful vector matchstick display with realistic heads
 - 🎮 **3D Game Page**: `game.html` includes match burning, paper-flip puzzle transition, and doodle-paper style interaction
-- 🌍 **Bilingual**: Chinese/English interface switching
-- 🌓 **Theme Toggle**: Light/dark themes, synchronized across main and rules pages
-- 🎵 **Background Music**: Play/stop background music (local resource)
+- 📦 **APK Packaging**: Supports Capacitor Android local packaging and GitHub Actions cloud packaging
 
 ## Quick Start
 

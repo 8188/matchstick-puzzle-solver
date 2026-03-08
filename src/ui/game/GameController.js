@@ -37,11 +37,12 @@ class GameController {
         this.vantaEffect = null;
         this.paperDoodleCanvas = null;
         this.paperDoodleCtx = null;
+        this.doodleResizeTimer = null;
         this.i18n = new I18n();
         this.i18n.loadSavedLanguage();
 
-        this.width = this.container.clientWidth;
-        this.height = this.container.clientHeight;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         this.clock = new THREE.Clock();
 
         this.level = 1;
@@ -119,9 +120,15 @@ class GameController {
     }
 
     _screenToWorldAtZ(clientX, clientY, targetZ = 0) {
+        const rect = this.canvas.getBoundingClientRect();
+        const w = Math.max(1, rect.width);
+        const h = Math.max(1, rect.height);
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
         const ndc = new THREE.Vector3(
-            (clientX / this.width) * 2 - 1,
-            -(clientY / this.height) * 2 + 1,
+            (x / w) * 2 - 1,
+            -(y / h) * 2 + 1,
             0.5
         );
         ndc.unproject(this.camera);
@@ -135,6 +142,8 @@ class GameController {
 
         const rect = this.equationDisplay.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return;
+        const isNarrow = rect.width < 560;
+        const sidePaddingPx = isNarrow ? 6 : 12;
 
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -152,14 +161,31 @@ class GameController {
         if (baseSize && baseSize.x > 0 && baseSize.y > 0) {
             const scaleX = targetWidth / baseSize.x;
             const scaleY = targetHeight / baseSize.y;
-            const s = Math.max(0.5, Math.min(scaleX, scaleY, 2.8));
+            const minScale = isNarrow ? 0.18 : 0.35;
+            const s = Math.max(minScale, Math.min(scaleX, scaleY, 2.8));
             this.currentGroup.scale.setScalar(s);
 
             // 使用当前包围盒进行“真实左对齐”，确保从 puzzle 左侧开始
-            const leftAnchor = this._screenToWorldAtZ(rect.left + 12, centerY, this.equationZ);
-            const box = new THREE.Box3().setFromObject(this.currentGroup);
-            const dx = leftAnchor.x - box.min.x;
+            const leftAnchor = this._screenToWorldAtZ(rect.left + sidePaddingPx, centerY, this.equationZ);
+            const rightAnchor = this._screenToWorldAtZ(rect.right - sidePaddingPx, centerY, this.equationZ);
+
+            let box = new THREE.Box3().setFromObject(this.currentGroup);
+            let dx = leftAnchor.x - box.min.x;
             this.currentGroup.position.x += dx;
+
+            // 二次自适应：左对齐后若仍超出右边界，继续缩小
+            box = new THREE.Box3().setFromObject(this.currentGroup);
+            const availableWidth = Math.max(0.0001, rightAnchor.x - leftAnchor.x);
+            const currentWidth = Math.max(0.0001, box.max.x - box.min.x);
+            if (currentWidth > availableWidth) {
+                const fit = (availableWidth / currentWidth) * 0.985;
+                const fitScale = Math.max(0.14, this.currentGroup.scale.x * fit);
+                this.currentGroup.scale.setScalar(fitScale);
+
+                box = new THREE.Box3().setFromObject(this.currentGroup);
+                dx = leftAnchor.x - box.min.x;
+                this.currentGroup.position.x += dx;
+            }
         }
     }
 
@@ -187,7 +213,7 @@ class GameController {
 
         try {
             this.vantaEffect = window.VANTA.CELLS({
-                el: '#game-container',
+                el: document.body,
                 mouseControls: true,
                 touchControls: true,
                 gyroControls: false,
@@ -280,6 +306,18 @@ class GameController {
             ctx.fillText(txt, 0, 0);
             ctx.restore();
         }
+    }
+
+    _scheduleDoodleRedraw(delay = 160) {
+        if (this.doodleResizeTimer) {
+            window.clearTimeout(this.doodleResizeTimer);
+        }
+        this.doodleResizeTimer = window.setTimeout(() => {
+            if (!this.isFlipping) {
+                this._drawPaperDoodles();
+            }
+            this.doodleResizeTimer = null;
+        }, delay);
     }
 
     async init() {
@@ -534,15 +572,13 @@ class GameController {
     }
 
     _onResize() {
-        this.width = this.container.clientWidth;
-        this.height = this.container.clientHeight;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         this.renderer.setSize(this.width, this.height);
         this.camera.aspect = this.width / this.height;
         this.camera.updateProjectionMatrix();
         this._updateEquationLayout();
-        if (!this.isFlipping) {
-            this._drawPaperDoodles();
-        }
+        this._scheduleDoodleRedraw();
         if (this.vantaEffect && this.vantaEffect.resize) {
             this.vantaEffect.resize();
         }
