@@ -118,6 +118,5 @@ jobs:
             Automated release of signed Android APK for version ${{ steps.version.outputs.version }}.
             - Includes latest puzzle solver features and UI improvements.
           files: ./artifacts/*.apk
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
