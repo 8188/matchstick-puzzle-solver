@@ -66,6 +66,9 @@ jobs:
           cp index.html www/ 2>/dev/null || true
           cp rules.html www/ 2>/dev/null || true
 
+      - name: Add Android platform
+        run: npx cap add android
+
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
