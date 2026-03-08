@@ -18,7 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # caching requires a lock file (package-lock.json, yarn.lock, etc.)
+          # this repo does not commit one, so we skip the cache step to avoid
+          # the "Dependencies lock file is not found" error.
 
       - name: Install dependencies
         run: |
